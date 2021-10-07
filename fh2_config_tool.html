@@ -1,0 +1,2416 @@
+<!DOCTYPE html>
+<head>
+
+<title>FH-2 Configuration Tool</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Mono">
+
+<style>
+body {
+	font-family: 'PT Sans', serif;
+	font-size: 16px;
+}
+button.big {
+	font-size: 120%;
+}
+input, select, button {
+	font-family: 'PT Sans', serif;
+	font-size: 11px;
+}
+div.small {
+	font-size: 80%;
+}
+table {
+	margin-bottom: 5px;
+}
+td.tc {
+	text-align: center;
+	background-color: #c0c0c0;
+	font-size: 80%;
+}
+td.tc_a {
+	text-align: center;
+	background-color: #e0e0e0;
+	font-size: 80%;
+}
+tr.a {
+	background-color: #e0e0e0;
+}
+th {
+	background-color: #c0c0c0;
+	font-size: 80%;
+}
+textarea {
+    font-family: 'PT Mono', monospace;
+	font-size: 11px;
+}
+table.logs {
+	margin: 0px;
+	border-spacing: 0px;
+}
+td.logs {
+	padding: 0px;
+}
+label.logs {
+	font-size: 80%;
+}
+.hidden {
+	position:absolute;
+	left:-10000px;
+	top:auto;
+	width:1px;
+	height:1px;
+	overflow:hidden;
+}
+p {
+	margin-block-start: 0em;
+	margin-block-end: 0em;
+}
+</style>
+
+<script>
+function log( t ) {
+	var ta = document.getElementById( "log" );
+	var d = new Date();
+	var dd = d.toLocaleTimeString();
+	ta.value = ta.value + "\n" + dd + ": " + t;
+	ta.scrollTop = ta.scrollHeight;
+	return dd;
+}
+function status( t ) {
+    document.getElementById( "status" ).innerHTML = "Web MIDI status: " + t;
+}
+function nybbleChar( n ) {
+	if ( n >= 10 ) {
+		return String.fromCharCode( 'A'.charCodeAt( 0 ) + n - 10 );
+	}
+	return String.fromCharCode( '0'.charCodeAt( 0 ) + n );
+}
+function makeSysExMcv( data, c, m ) {
+	// enable
+	data[c] = document.getElementById( "mcv_enable_" + m ).checked;	c += 1;
+	// channel
+	data[c] = document.getElementById( "mcv_ch_" + m ).value - 1;	c += 1;
+	// min/max
+	data[c] = document.getElementById( "mcv_min_" + m ).value; c += 1;
+	data[c] = document.getElementById( "mcv_max_" + m ).value; c += 1;
+	// type
+	data[c] = document.getElementById( "mcv_type_" + m ).value; c += 1;
+	// polyphony
+	data[c] = document.getElementById( "mcv_voices_" + m ).value; c += 1;
+	// bend depth
+	data[c] = document.getElementById( "mcv_bend_" + m ).value;	c += 1;
+	// voice allocation scheme
+	data[c] = document.getElementById( "mcv_scheme_" + m ).value; c += 1;
+	// ignore surplus
+	data[c] = document.getElementById( "mcv_stealing_" + m ).checked;	c += 1;
+	// gated pressure
+	data[c] = document.getElementById( "mcv_GA_" + m ).checked;	c += 1;
+	// sustain
+	data[c] = document.getElementById( "mcv_SUS_" + m ).value;	c += 1;
+	// base output
+	data[c] = document.getElementById( "mcv_base_" + m ).value; c += 1;
+	// stride
+	data[c] = document.getElementById( "mcv_stride_" + m ).value; c += 1;
+	// last MPE
+	data[c] = document.getElementById( "mcv_lastMPE_" + m ).value - 1; c += 1;
+	// pressure
+	data[c] = document.getElementById( "mcv_A_" + m ).checked;	c += 1;
+	// para gate
+	data[c] = document.getElementById( "mcv_G_" + m ).checked;	c += 1;
+	// cv output
+	data[c] = document.getElementById( "mcv_VC_" + m ).checked;	c += 1;
+	// gate output
+	data[c] = document.getElementById( "mcv_VG_" + m ).checked;	c += 1;
+	// vel gate output
+	data[c] = document.getElementById( "mcv_VVG_" + m ).checked;	c += 1;
+	// vel output
+	data[c] = document.getElementById( "mcv_VV_" + m ).checked;	c += 1;
+	// rel vel output
+	data[c] = document.getElementById( "mcv_VR_" + m ).checked;	c += 1;
+	// trigger output
+	data[c] = document.getElementById( "mcv_VT_" + m ).checked;	c += 1;
+	// voice pressure output
+	data[c] = document.getElementById( "mcv_VP_" + m ).checked;	c += 1;
+	// MPE Y output/CC
+	data[c] = document.getElementById( "mcv_VY_" + m ).value;	c += 1;
+	// envelope output
+	data[c] = document.getElementById( "mcv_VE_" + m ).checked;	c += 1;
+	// base gate output
+	data[c] = document.getElementById( "mcv_basegate_" + m ).value; c += 1;
+	// mono retrigger
+	data[c] = document.getElementById( "mcv_MT_" + m ).checked;	c += 1;
+	// interrupt gate
+	data[c] = document.getElementById( "mcv_IG_" + m ).checked;	c += 1;
+	// env zero start
+	data[c] = document.getElementById( "mcv_ZS_" + m ).checked;	c += 1;
+	// bend down depth
+	data[c] = document.getElementById( "mcv_benddown_" + m ).value;	c += 1;
+	// pitch bend output
+	data[c] = document.getElementById( "mcv_PB_" + m ).value;	c += 1;
+
+	return data;
+}
+function makeSysExMappings( data, c ) {
+	var map = 0;
+
+	for ( j=0; j<ac.length; ++j ) {
+		for ( i = 0; i < 64; ++i ) {
+			var ch = document.getElementById( "out_" + ac[j] + "_ch_" + i ).value - 1;
+			var cc = document.getElementById( "out_" + ac[j] + "_cc_" + i ).value;
+			if ( ch < 0 || cc < 0 ) {
+				continue;
+			}
+			data[c+0] = 0x30 | ch;
+			data[c+1] = cc;
+			data[c+2] = acc[j];
+			data[c+3] = i + aco[j];
+			c += 4;
+			
+			map += 1;
+			if ( map >= 384 ) {
+				return data;
+			}
+		}
+	}
+	
+	for ( j=1; j<17; ++j ) {
+		var id = "arpeg" + j + "_";
+		for ( i = 0; i < arpControls.length; ++i ) {
+			var ch = document.getElementById( id + arpControls[i] + "_ch" ).value - 1;
+			var cc = document.getElementById( id + arpControls[i] + "_cc" ).value;
+			if ( ch < 0 || cc < 0 ) {
+				continue;
+			}
+			data[c+0] = 0x30 | ch;
+			data[c+1] = cc;
+			data[c+2] = 9;
+			data[c+3] = (j-1)*8 + i;
+			c += 4;
+			
+			map += 1;
+			if ( map >= 384 ) {
+				return data;
+			}
+		}
+		var id = "mcvcom" + j + "_";
+		for ( i = 0; i < mcvCommands.length; ++i ) {
+			var ch = document.getElementById( id + mcvCommands[i] + "_ch" ).value - 1;
+			var cc = document.getElementById( id + mcvCommands[i] + "_cc" ).value;
+			if ( ch < 0 || cc < 0 ) {
+				continue;
+			}
+			data[c+0] = 0x30 | ch;
+			data[c+1] = cc;
+			data[c+2] = 11;
+			data[c+3] = (j-1)*8 + i;
+			c += 4;
+			
+			map += 1;
+			if ( map >= 384 ) {
+				return data;
+			}
+		}
+		var id = "mcvm2_" + j + "_";
+		for ( i = 0; i < mcvMappable2Controls.length; ++i ) {
+			var ch = document.getElementById( id + mcvMappable2Controls[i] + "_ch" ).value - 1;
+			var cc = document.getElementById( id + mcvMappable2Controls[i] + "_cc" ).value;
+			if ( ch < 0 || cc < 0 ) {
+				continue;
+			}
+			data[c+0] = 0x30 | ch;
+			data[c+1] = cc;
+			data[c+2] = 12;
+			data[c+3] = (j-1)*8 + i;
+			c += 4;
+			
+			map += 1;
+			if ( map >= 384 ) {
+				return data;
+			}
+		}
+	}
+
+	for ( j=1; j<17; ++j ) {
+		var id = "euc_" + j + "_";
+		for ( i = 0; i < eucControls.length; ++i ) {
+			var ch = document.getElementById( id + eucControls[i] + "_ch" ).value - 1;
+			var cc = document.getElementById( id + eucControls[i] + "_cc" ).value;
+			if ( ch < 0 || cc < 0 ) {
+				continue;
+			}
+			data[c+0] = 0x30 | ch;
+			data[c+1] = cc;
+			data[c+2] = 10;
+			data[c+3] = (j-1)*8 + i;
+			c += 4;
+		
+			map += 1;
+			if ( map >= 384 ) {
+				return data;
+			}
+		}
+	}
+
+			var ch = document.getElementById( "glb_tempo_ch" ).value - 1;
+			var cc = document.getElementById( "glb_tempo_cc" ).value;
+			if ( ch >= 0 && cc >= 0 ) {
+				data[c+0] = 0x30 | ch;
+				data[c+1] = cc;
+				data[c+2] = 69;
+				data[c+3] = 0;
+				c += 4;
+		
+				map += 1;
+				if ( map >= 384 ) {
+					return data;
+				}
+			}
+
+			var ch = document.getElementById( "dispmode_ch" ).value - 1;
+			var cc = document.getElementById( "dispmode_cc" ).value;
+			if ( ch >= 0 && cc >= 0 ) {
+				data[c+0] = 0x30 | ch;
+				data[c+1] = cc;
+				data[c+2] = 71;
+				data[c+3] = 0;
+				c += 4;
+		
+				map += 1;
+				if ( map >= 384 ) {
+					return data;
+				}
+			}
+			var ch = document.getElementById( "dispitem_ch" ).value - 1;
+			var cc = document.getElementById( "dispitem_cc" ).value;
+			if ( ch >= 0 && cc >= 0 ) {
+				data[c+0] = 0x30 | ch;
+				data[c+1] = cc;
+				data[c+2] = 72;
+				data[c+3] = 0;
+				c += 4;
+		
+				map += 1;
+				if ( map >= 384 ) {
+					return data;
+				}
+			}
+	
+	log( map + " mapping(s)" );
+	
+	for ( ; map<384; ++map ) {
+		data[c] = 0x7f;
+		c += 4;
+	}
+
+	return data;
+}
+function makeSysExClocks( data, c, i ) {
+	var clkid = "clk_" + i;
+	data[c+0] = document.getElementById( clkid + "_type" ).value;
+	data[c+1] = document.getElementById( clkid + "_base" ).value;
+	data[c+2] = document.getElementById( clkid + "_mult" ).value;
+	data[c+3] = document.getElementById( clkid + "_len" ).value;
+	data[c+4] = document.getElementById( clkid + "_output" ).value;
+	data[c+5] = document.getElementById( clkid + "_shift" ).value;
+	return data;
+}
+function makeSysExTriggers( data, c, i ) {
+	var clkid = "trg_" + i;
+	var env = document.getElementById( clkid + "_env" ).value - 1;
+	data[c+0] = document.getElementById( clkid + "_type" ).value | ( ( env >> 1 ) << 4 );
+	data[c+1] = ( document.getElementById( clkid + "_ch" ).value - 1 ) | ( ( env & 1 ) << 4 );
+	data[c+2] = document.getElementById( clkid + "_note" ).value;
+	data[c+3] = document.getElementById( clkid + "_output" ).value;
+	return data;
+}
+function sysexSafeShort( v ) {
+	return ( v & 0x7f ) | ( ( v << 1 ) & 0x7f00 );
+}
+function unSysexSafeShort( v ) {
+	return ( v & 0x7f ) | ( ( v >> 1 ) & 0x3f80 );
+}
+function unSysexSafeSignedShort( v ) {
+	var s = ( v & 0x7f ) | ( ( v >> 1 ) & 0x3f80 );
+	if ( s & 0x2000 ) {
+		s = s - 16384;
+	}
+	return s;
+}
+function sysexSafeSignedChar( v ) {
+	return v & 0x7f;
+}
+function unSysexSafeSignedChar( v ) {
+	if ( v & 0x40 ) {
+		return v - 128;
+	}
+	return v;
+}
+function makeSysEx() {
+	var arr = new Uint8Array( 8192 );
+	var d = [0xF0, 0x00, 0x21, 0x27, 0x2F, 0x10, 0x00, 0x00]
+	var len = d.length
+	for ( var i = 0; i < len; ++i ) {
+		arr[i] = d[i];
+	} 
+	var c = len;
+	// version
+	arr[c] = 9;		 c += 1;
+	arr[c] = 0;		 c += 1;
+	arr[c] = 0;		 c += 1;
+	arr[c] = 0;		 c += 1;
+	// name
+	var name = document.getElementById( "config_name" ).value;
+	name += "                ";
+	name = name.substring( 0, 16 );
+	for ( var i = 0; i < 16; ++i ) {
+		arr[c+i] = name.charCodeAt( i );
+	}
+	c += 17;
+	// globals
+	arr[c] = document.getElementById( "glb_triglen" ).value;		 c += 1;
+	arr[c] = sysexSafeSignedChar( document.getElementById( "glb_transpose" ).value );		 c += 1;
+	arr[c] = document.getElementById( "glb_legvel" ).checked;		 c += 1;
+	arr[c] = document.getElementById( "glb_extclkmult" ).value;		 c += 1;
+	arr[c] = document.getElementById( "glb_extclkrun" ).value;		 c += 1;
+	arr[c] = document.getElementById( "glb_presetprogch" ).value;	 c += 1;
+	arr[c] = document.getElementById( "glb_softtakeover" ).checked;	 c += 1;
+	// output ranges
+	for ( var i = 1; i < 65; ++i ) {
+		arr[c] = document.getElementById( "rng_" + i ).value;		 c += 1;
+	} 
+	// mcvs
+	for ( var i = 0; i < 16; ++i ) {
+		arr = makeSysExMcv( arr, c, i+1 );
+		c += 32;
+	}
+	// mappings
+	arr = makeSysExMappings( arr, c );
+	c += 384*4;
+	// clocks
+	for ( var i = 1; i < 33; ++i ) {
+		arr = makeSysExClocks( arr, c, i );
+		c += 8;
+	}
+	// gate levels
+	for ( var i = 0; i < 64; ++i ) {
+		var gtid = "out_gt_" + i;
+		var v = document.getElementById( gtid + "_lo" ).value;
+		v = sysexSafeShort( v );
+		arr[c] = v & 0x7f;		 c += 1;
+		arr[c] = v >> 8;		 c += 1;
+		var v = document.getElementById( gtid + "_hi" ).value;
+		v = sysexSafeShort( v );
+		arr[c] = v & 0x7f;		 c += 1;
+		arr[c] = v >> 8;		 c += 1;
+	}
+	// triggers
+	for ( var i = 1; i <= 64; ++i ) {
+		arr = makeSysExTriggers( arr, c, i );
+		c += 4;
+	}
+	// euclidean outputs
+	for ( var i = 1; i < 17; ++i ) {
+		var v = document.getElementById( "euc_output_" + i ).value;
+		arr[c] = v & 0x7f;	c += 1;
+	}
+	// globals
+	arr[c] = document.getElementById( "glb_taptype" ).value;		 c += 1;
+	arr[c] = document.getElementById( "glb_tapch" ).value;		 	c += 1;
+	arr[c] = document.getElementById( "glb_tapcc" ).value;		 	c += 1;
+	arr[c] = document.getElementById( "glb_eucaccent" ).value;		c += 1;
+	arr[c] = document.getElementById( "glb_starttype" ).value;		 c += 1;
+	arr[c] = document.getElementById( "glb_startch" ).value;		 c += 1;
+	arr[c] = document.getElementById( "glb_startcc" ).value;		 c += 1;
+	c += 1;
+	// euclidean off outputs
+	for ( var i = 1; i < 17; ++i ) {
+		var v = document.getElementById( "euc_offoutput_" + i ).value;
+		arr[c] = v & 0x7f;	c += 1;
+	}
+	// gamepad mappings
+	for ( var i = 1; i < 33; ++i ) {
+		var gtid = "hid_" + i;
+		arr[c+0] = document.getElementById( gtid + "_usage" ).value;
+		arr[c+1] = document.getElementById( gtid + "_output" ).value;
+		var v = document.getElementById( gtid + "_scale" ).value;
+		v = sysexSafeShort( v );
+		arr[c+2] = v & 0x7f;
+		arr[c+3] = v >> 8;
+		var v = document.getElementById( gtid + "_offset" ).value;
+		v = sysexSafeShort( v );
+		arr[c+4] = v & 0x7f;
+		arr[c+5] = v >> 8;
+		c += 8;
+	}
+	// keyboard mappings
+	for ( var i = 1; i < 33; ++i ) {
+		var gtid = "kbd_" + i;
+		arr[c+0] = document.getElementById( gtid + "_type" ).value;
+		arr[c+1] = document.getElementById( gtid + "_output" ).value;
+		arr[c+2] = document.getElementById( gtid + "_key" ).value;
+		arr[c+3] = 0;
+		var v = document.getElementById( gtid + "_value0" ).value;
+		v = sysexSafeShort( v );
+		arr[c+4] = v & 0x7f;
+		arr[c+5] = v >> 8;
+		var v = document.getElementById( gtid + "_value1" ).value;
+		v = sysexSafeShort( v );
+		arr[c+6] = v & 0x7f;
+		arr[c+7] = v >> 8;
+		c += 8;
+	}
+	// lfo resets
+	for ( var i = 1; i < 65; ++i ) {
+		var t = document.getElementById( "lfotrig_type_" + i ).value;
+		var ch = document.getElementById( "lfotrig_ch_" + i ).value;
+		arr[c+0] = ( t << 4 ) | ch;
+		arr[c+1] = document.getElementById( "lfotrig_cc_" + i ).value;
+		c += 2;
+	}
+	// cv/midi
+	for ( var i = 0; i < 2; ++i ) {
+		var en = document.getElementById( "cvm_en_" + i ).checked;
+		var ti = document.getElementById( "cvm_outI_" + i ).checked;
+		var ta = document.getElementById( "cvm_outA_" + i ).checked;
+		var tc = document.getElementById( "cvm_outC_" + i ).checked;
+		var td = document.getElementById( "cvm_outD_" + i ).checked;
+		arr[c+0] = ( td << 4 ) | ( tc << 3 ) | ( ta << 2 ) | ( ti << 1 ) | en;
+		arr[c+1] = ( document.getElementById( "cvm_type_" + i ).value << 4 ) | ( document.getElementById( "cvm_ch_" + i ).value - 1 );
+		arr[c+2] = document.getElementById( "cvm_cc_" + i ).value;
+		var v = document.getElementById( "cvm_0v_" + i ).value;
+		v = sysexSafeShort( v );
+		arr[c+4] = v & 0x7f;
+		arr[c+5] = v >> 8;
+		var v = document.getElementById( "cvm_5v_" + i ).value;
+		v = sysexSafeShort( v );
+		arr[c+6] = v & 0x7f;
+		arr[c+7] = v >> 8;
+		c += 8;
+	}
+	// globals
+	arr[c] = document.getElementById( "glb_tempo_min" ).value;		 c += 1;
+	arr[c] = document.getElementById( "glb_tempo_max" ).value;		 c += 1;
+	c += 2;
+
+	// pad to 4096 bytes
+	while ( ( c - len ) < 4096 ) {
+		arr[c] = 0;		 c += 1;
+	}
+	
+	// addendum
+	for ( var i = 1; i < 17; ++i ) {
+		var v = document.getElementById( "euc_output_" + i ).value;
+		arr[c] = ( v & 0x80 ) ? 1 : 0;	c += 1;
+	}
+	for ( var i = 1; i < 17; ++i ) {
+		var v = document.getElementById( "euc_offoutput_" + i ).value;
+		arr[c] = ( v & 0x80 ) ? 1 : 0;	c += 1;
+	}
+
+	var str = ""
+	for ( var i = 0; i < c; ++i ) {
+		str += String.fromCharCode( arr[i] );
+	}
+	str += String.fromCharCode( 0xF7 );
+	return str;
+}
+function makeMsgSysEx() {
+	var d = [0xF0, 0x00, 0x21, 0x27, 0x2F, 0x02]
+	var len = d.length
+	var str = ""
+	for ( var i = 0; i < len; ++i ) {
+		str += String.fromCharCode( d[i] );
+	} 
+	var text = "Hello!\nThis message\nwas sent from\nthe config tool.";
+	str += text;
+	str += String.fromCharCode( 0xF7 );
+	return str;
+}
+function dumpSysex( data, id, prefix ) {
+	var len = data.length
+	var h = prefix
+	for ( var i = 0; i < len; ++i ) {
+		var b = data[ i ];
+		h += nybbleChar( b >> 4 );
+		h += nybbleChar( b & 0xf );
+		h += " ";
+		if ( ( i & 0xf ) === 0xf ) {
+			h += "\n";
+		}
+	} 
+	document.getElementById( id ).value = h;
+}
+</script>
+
+<script>
+var arpControls = [ "M", "R", "G", "L", "T", "P", "S", "E" ];
+var arpControlsUI = [ "P", "E" ];
+var arpControlsUI2 = [ "M", "R", "G", "L", "T", "S" ];
+var mcvMappable2Controls = [ "A", "D", "S", "R", "N", "P", "V" ];
+var mcvCommands = [ "A", "R", "T", "N", "P", "K", "O" ];
+var eucControls = [ "P", "S", "R", "T", "G", "A", "E" ];
+var menus = [ 'C', 'D', 'E' ];
+var menuCCs = [ 80, 88, 96 ];
+var unhandled = [];
+function hex( b ) {
+	h = nybbleChar( b >> 4 );
+	h += nybbleChar( b & 0xf );
+	return h;
+}
+function changeClock( id ) {
+	var v = document.getElementById( id + "_type" ).value;
+	var s = ( v == 1 );
+	document.getElementById( id + "_base" ).style.display = s ? "inline" : "none";
+	document.getElementById( id + "_mult" ).style.display = s ? "inline" : "none";
+	document.getElementById( id + "_len" ).style.display = s ? "inline" : "none";
+	document.getElementById( id + "_shift" ).style.display = s ? "inline" : "none";
+}
+function changeTrigger( id ) {
+	var v = document.getElementById( id + "_type" ).value;
+	var s = ( v > 0 );
+	document.getElementById( id + "_ch" ).style.display = s ? "inline" : "none";
+	document.getElementById( id + "_note" ).style.display = s ? "inline" : "none";
+	document.getElementById( id + "_env" ).style.display = ( v == 9 ) ? "inline" : "none";
+}
+function changeGateLevel( id ) {
+	var v = document.getElementById( id ).value;
+	var vi = Number( v );
+	if ( !( vi >= 0 && vi < 16384 ) ) {
+		document.getElementById( id ).value = 0;
+	}
+}
+function changeCVMLevel( id ) {
+	var v = document.getElementById( id ).value;
+	var vi = Number( v );
+	if ( !( vi > -16384 && vi < 16384 ) ) {
+		document.getElementById( id ).value = 0;
+	}
+}
+function changeHidUsage( id, i ) {
+	var v = document.getElementById( id ).value;
+	var s = ( v >= 20 && v <= 29 );
+	document.getElementById( "hid_" + i + "_scale" ).style.display = s ? "inline" : "none";
+	document.getElementById( "hid_" + i + "_offset" ).style.display = s ? "inline" : "none";
+}
+function changeHidScale( id ) {
+	var v = document.getElementById( id ).value;
+	var vi = Number( v );
+	if ( !( vi >= -256 && vi <= 256 ) ) {
+		document.getElementById( id ).value = 0;
+	}
+}
+function changeHidOffset( id ) {
+	var v = document.getElementById( id ).value;
+	var vi = Number( v );
+	if ( !( vi >= 0 && vi <= 4096 ) ) {
+		document.getElementById( id ).value = 0;
+	}
+}
+function changeStartStop() {
+	var v = document.getElementById( 'glb_starttype' ).value;
+	var s = ( v >= 1 ) && ( v <= 4 );
+	document.getElementById( "glb_startch" ).style.display = s ? "inline" : "none";
+	document.getElementById( "glb_startcc" ).style.display = s ? "inline" : "none";
+}
+function changeType( i ) {
+	var ta = document.getElementById( "mcv_type_" + i );
+	var m = false;
+	var p = false;
+	var mpe = false;
+	switch ( ta.value ) {
+		case "0":
+			m = true;
+			break;
+		case "1":
+			p = true;
+			break;
+		case "2":
+			p = true;
+			mpe = true;
+			break;
+	}
+	var mp = m || p;
+	var c = [ "G", "A" ];
+	for ( k=0; k<2; ++k ) {
+		id = "mcv_" + c[k] + "_" + i;
+		ta = document.getElementById( id );
+		ta.style.display = mp ? "inline" : "none";
+	}
+	var c = [ "mcv_scheme_", "mcv_stealing_", "mcv_voices_", "mcv_stride_" ];
+	for ( k=0; k<c.length; ++k ) {
+		id = c[k] + i;
+		ta = document.getElementById( id );
+		ta.style.display = p ? "inline" : "none";
+	}
+	var c = [ "mcv_lastMPE_", "mcv_VY_" ];
+	for ( k=0; k<c.length; ++k ) {
+		id = c[k] + i;
+		ta = document.getElementById( id );
+		ta.style.display = mpe ? "inline" : "none";
+	}
+	var c = [ "mcv_base_", "mcv_GA_" ];
+	for ( k=0; k<c.length; ++k ) {
+		id = c[k] + i;
+		ta = document.getElementById( id );
+		ta.style.display = mp ? "inline" : "none";
+	}
+	var c = [ "C", "G", "VG", "V", "R", "T" ];
+	for ( k=0; k<6; ++k ) {
+		id = "mcv_V" + c[k] + "_" + i;
+		ta = document.getElementById( id );
+		ta.style.display = mp ? "inline" : "none";
+	}
+	{
+		id = "mcv_SUS_" + i;
+		ta = document.getElementById( id );
+		ta.style.display = mp ? "inline" : "none";
+	}
+	{
+		id = "mcv_MT_" + i;
+		ta = document.getElementById( id );
+		ta.style.display = m ? "inline" : "none";
+	}
+}
+function writeChannelSelector( id, includeNone=true ) {
+	document.write( "<select id='" + id + "'>" );
+	if ( includeNone ) {
+		document.write( "<option value='-1'>None</option>" );
+	}
+	var j;
+	for ( j = 0; j < 8; ++j ) {
+		document.write( "<option value='"+j+"'>" + (j+1) + "</option>" );
+	}
+	var e;
+	for ( e = 1; e < 8; ++e ) {
+		for ( j = 0; j < 8; ++j ) {
+			document.write( "<option value='"+(e*8+j)+"'>" + e + "/" + (j+1) + "</option>" );
+		}
+	}
+	document.write( "</select>" );
+}
+function writeGateChannelSelector( id, includeNone=true ) {
+	document.write( "<select id='" + id + "'>" );
+	if ( includeNone ) {
+		document.write( "<option value='-1'>None</option>" );
+	}
+	for ( j = 0; j < 8; ++j ) {
+		document.write( "<option value='"+j+"'>" + (j+1) + "</option>" );
+	}
+	var e;
+	for ( e = 1; e < 8; ++e ) {
+		for ( j = 0; j < 8; ++j ) {
+			document.write( "<option value='"+(e*8+j)+"'>" + e + "/" + (j+1) + "</option>" );
+		}
+	}
+	for ( e = 0; e < 4; ++e ) {
+		for ( j = 0; j < 16; ++j ) {
+			document.write( "<option value='"+(64+e*16+j)+"'>GT" + e + "/" + (j+1) + "</option>" );
+		}
+	}
+	document.write( "</select>" );
+}
+function writeBaseGateChannelSelector( id ) {
+	document.write( "<select id='" + id + "'>" );
+	if ( 1 ) {
+		document.write( "<option value='0'>--</option>" );
+	}
+	var e;
+	for ( e = 0; e < 4; ++e ) {
+		for ( j = 0; j < 16; ++j ) {
+			document.write( "<option value='"+(64+e*16+j)+"'>" + e + "/" + (j+1) + "</option>" );
+		}
+	}
+	document.write( "</select>" );
+}
+function changeMIDIChannel( id, ccid ) {
+	console.log( id, ccid );
+	if ( ccid != null ) {
+		var show = ( document.getElementById( id ).value > 0 );
+		document.getElementById( ccid ).style.display = show ? "inline" : "none";
+	}
+}
+
+function writeMIDIChannelSelector( id, includeNone=false, ccid=null ) {
+	document.write( "<select onchange='changeMIDIChannel(\"" + id + "\",\"" + ccid + "\")' id='" + id + "'>" );
+	if ( includeNone ) {
+		document.write( "<option value='-1'>--</option>" );
+	}
+	var j;
+	for ( j = 1; j < 17; ++j ) {
+		document.write( "<option value='"+j+"'>" + j + "</option>" );
+	}
+	document.write( "</select>" );
+}
+function writeMIDICCSelector( id, includeNone=true, hide=true ) {
+	document.write( "<select id='" + id + "'>" );
+	if ( includeNone ) {
+		document.write( "<option value='-1'>--</option>" );
+	}
+	var j;
+	for ( j = 0; j < 128; ++j ) {
+		document.write( "<option value='"+j+"'>" + j + "</option>" );
+	}
+	document.write( "</select>" );
+	if ( hide ) {
+		document.getElementById( id ).style.display = "none";
+	}
+}
+function showHide( id, show ) {
+	var ta = document.getElementById( id );
+	ta.style.display = show ? "inline" : "none";
+}
+</script>
+
+</head>
+
+<body>
+
+<div class="small">
+At the time of writing this will work only in Google's <a href="http://www.google.com/chrome/">Chrome</a> browser or in the <a href="https://www.opera.com">Opera</a> browser. Chrome may block SysEx access if you run this from a website, in which case download the html file locally and run it from there.
+</div>
+<div class="small" id="status"></div>
+<div class="small">
+This version is for FH-2 firmware v1.14 and above.
+</div>
+<p>
+
+<button class="big" accesskey='s' onclick="send()">Send to FH-2</button>
+<label for="midioutput">Send to MIDI output port: </label><select id="midioutput" accesskey='o'></select>
+<button onclick="sendMsg()">Send Msg</button>
+<br>
+<button class="big" accesskey='u' onclick="request()">Upload from FH-2</button>
+<label for="midiinput">Listen on MIDI input port: </label><select id="midiinput" onchange='changeInput()' accesskey='i'></select>
+<button onclick="reqVersion()" accesskey='v'>Request FH-2 Version</button>
+<p>
+<textarea rows=5 cols=50 id="log" class="log" readOnly title="Log" accesskey='l'></textarea>
+<textarea rows=5 cols=48 name="text" id="txSysex" title="Transmitted SysEx"></textarea>
+<textarea rows=5 cols=48 name="text" id="rxSysex" title="Received SysEx"></textarea>
+<p>
+<label for="config_name">Configuration name:</label><input id='config_name' accesskey='n' type='text'>
+<p>
+<label class = 'hidden' for='glb_lbl'>Show Globals</label>
+<input id='glb_lbl' type='checkbox' onclick='showHide("glb_table",this.checked)' accesskey="b">Show Globals</input>
+<label class = 'hidden' for='conv_lbl'>Show MIDI/CV Converters</label>
+<input type='checkbox' id='conv_lbl' onclick='showHide("mcv_table",this.checked)' checked=true accesskey='m'>Show MIDI/CV Converters</input>
+<label class = 'hidden' for='env_lbl'>Show Portamento/Transpose/Envelopes</label>
+<input type='checkbox' id='env_lbl' onclick='showHide("env_table",this.checked)'  accesskey='p'>Show Portamento/Transpose/Envelopes</input>
+<label class = 'hidden' for='arp_lbl'>Show Arpeggiators</label>
+<input type='checkbox' id='arp_lbl' onclick='showHide("arp_table",this.checked)'  accesskey='a'>Show Arpeggiators</input>
+<label class = 'hidden' for='clock_lbl'>Show Clocks</label>
+<input type='checkbox' id='clock_lbl' onclick='showHide("clk_table",this.checked)' accesskey='k'>Show Clocks</input>
+<label class = 'hidden' for='trig_lbl'>Show Triggers</label>
+<input type='checkbox' id='trig_lbl' onclick='showHide("trg_table",this.checked)' accesskey='t'>Show Triggers</input>
+<label class = 'hidden' for='euc_lbl'>Show Euclidean Patterns</label>
+<input type='checkbox' id='euc_lbl' onclick='showHide("euc_table",this.checked)' accesskey='r'>Show Euclidean Patterns</input>
+<br>
+<label class="hidden" for="showfh2outputs">Show FH-2 Output Configurator</label>
+<input id="showfh2outputs" type='checkbox' onclick='showHide("outs0_table",this.checked)' checked=true  accesskey='w'>Show FH-2 Output Configurator</input>
+| Show FHX-8CV Expander Output Configurator:
+<script>
+	var i;
+	for ( i = 1; i < 8; ++i ) {
+		document.write( "<label class='hidden' for='show8cvoutputs" + i + "'>Show FHX-8CV Expander Output Configurator " + i + "</label><input id='show8cvoutputs" + i + "' type='checkbox' accesskey='" + i + "' onclick='showHide(\"outs" + i + "_table\",this.checked)'>" + i + "</input>" );
+	}
+</script>
+<!--<br>
+<input type='checkbox' onclick='showHide("menus_table",this.checked)'>Show Settings/Menus</input>
+<br>
+<input type='checkbox' onclick='showHide("noteccs_table",this.checked)' accesskey='n'>Show Note-to-CC Maps</input>
+<br>
+<label class = 'hidden' for='misc_lbl'>Show Miscellaneous</label>
+<input type='checkbox' id='misc_lbl' onclick='showHide("misc_table",this.checked)' accesskey='x'>Show Miscellaneous</input>
+<p>-->
+<label class = 'hidden' for='hid_lbl'>Show GamePad</label>
+<input type='checkbox' id='hid_lbl' onclick='showHide("hid_table",this.checked)' accesskey='h'>Show Gamepad</input>
+<label class = 'hidden' for='kbd_lbl'>Show HID Keyboard</label>
+<input type='checkbox' id='kbd_lbl' onclick='showHide("kbd_table",this.checked)' accesskey='y'>Show HID Keyboard</input>
+<label class = 'hidden' for='cvm_lbl'>Show CV/MIDI</label>
+<input type='checkbox' id='cvm_lbl' onclick='showHide("cvm_table",this.checked)' accesskey='c'>Show CV/MIDI</input>
+
+<table id="glb_table"><caption class="hidden">Globals</caption>
+<thead>
+<tr class="a">
+<th rowspan=2>Legato<br>velocity</th>
+<th rowspan=2>Global<br>transpose</th>
+<th rowspan=2>Trigger<br>length</th>
+<th rowspan=2>Ext Clock<br>Multiplier</th>
+<th rowspan=2>Ext Clock<br>Run Control</th>
+<th rowspan=2>Euclidean<br>Accent</th>
+<th>Preset Program Change</th>
+<th rowspan=2>Soft<br>takeover</th>
+<th colspan=3>Tap Tempo</th>
+<th colspan=3>Start/Stop</th>
+<th colspan=3>Internal tempo</th>
+<th colspan=2>Display mode/item</th>
+</tr>
+<tr class="b">
+<th>Channel</th>
+<th>Type</th><th>Channel</th><th>Note or CC</th>
+<th>Type</th><th>Channel</th><th>Note or CC</th>
+<th>Channel/CC</th><th>Min</th><th>Max</th>
+<th>Channel/CC</th><th>Channel/CC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="a">
+<td><label class="hidden" for="glb_legvel">Legato velocity</label><input type='checkbox' checked id='glb_legvel'></td>
+<td><label class="hidden" for="glb_transpose">Global transpose</label><select id='glb_transpose'>
+<script>
+		for ( var j = -48; j <= 48; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+</script>
+</select></td>
+<td><label class="hidden" for="glb_triglen">Trigger length</label><select id='glb_triglen'>
+<script>
+		for ( var j = 1; j <= 100; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+</script>
+</select></td>
+<td><label class="hidden" for="glb_extclkmult">Ext Clock Multiplier</label><select id='glb_extclkmult'>
+<script>
+		for ( var j = 1; j <= 96; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+</script>
+</select></td>
+<td><label class="hidden" for="glb_extclkrun">Ext Clock Run Control</label><select id='glb_extclkrun'>
+<option value=0>None</option><option value=1>Run/Stop on Y</option>
+</select></td>
+<td><label class="hidden" for="glb_eucaccent">Euclidean Accent</label><select id='glb_eucaccent'>
+<script>
+		for ( var j = 0; j <= 127; ++j ) {
+			document.write( "<option value='"+j+"'>" + (j+1) + "</option>" );
+		}
+</script>
+</select></td>
+<td><label class="hidden" for="glb_presetprogch">Preset Program Change</label><select id='glb_presetprogch'>
+<option value='0'>Off</option>
+<script>
+		for ( var j = 1; j <= 16; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+</script>
+</select></td>
+
+<td><label class="hidden" for="glb_softtakeover">Soft takeover</label><input type='checkbox' id='glb_softtakeover'></td>
+
+<td><label class="hidden" for="glb_taptype">Tap Tempo</label><select id='glb_taptype'>
+<option value=0>None</option><option value=1>Note</option><option value=2>CC</option>
+</select></td>
+<td><label class="hidden" for="glb_tapch">Tap Tempo MIDI Channel</label><script>
+		writeMIDIChannelSelector( 'glb_tapch' );
+</script></td>
+<td><label class="hidden" for="glb_tapcc">Tap Tempo MIDI CC</label><script>
+		writeMIDICCSelector( 'glb_tapcc', false, false );
+</script></td>
+
+<td><label class="hidden" for="glb_starttype">Start/Stop</label><select id='glb_starttype' onchange='changeStartStop()'>
+<option value=0>None</option><option value=1>Note Toggle</option><option value=2>CC Toggle</option><option value=3>Note Gate</option><option value=4>CC Gate</option>
+<option value=5>Y Toggle</option><option value=6>Y Gate</option>
+</select></td>
+<td><label class="hidden" for="glb_startch">Start/Stop MIDI Channel</label><script>
+		writeMIDIChannelSelector( 'glb_startch' );
+</script></td>
+<td><label class="hidden" for="glb_startcc">Start/Stop MIDI CC</label><script>
+		writeMIDICCSelector( 'glb_startcc', false, false );
+</script></td>
+
+<td><label class="hidden" for="glb_tempo_ch">Global Tempo MIDI Channel</label><label class="hidden" for="glb_tempo_cc">Global Tempo MIDI CC</label><script>
+	var ccid = "glb_tempo_cc";
+	writeMIDIChannelSelector( "glb_tempo_ch", true, ccid );
+	writeMIDICCSelector( ccid );
+</script></td>
+<td><label class="hidden" for="glb_tempo_min">Tempo Minimum</label><select id='glb_tempo_min'><script>
+		for ( var j = 0; j <= 127; ++j ) {
+			document.write( "<option value='"+j+"'>" + (j+1) + "</option>" );
+		}
+</script></select></td>
+<td><label class="hidden" for="glb_tempo_max">Tempo Maximum</label><select id='glb_tempo_max'><script>
+		for ( var j = 0; j <= 127; ++j ) {
+			document.write( "<option value='"+j+"'>" + (j+128) + "</option>" );
+		}
+</script></select></td>
+
+<td><label class="hidden" for="dispmode_ch">Display Mode MIDI Channel</label><label class="hidden" for="dispmode_cc">Display Mode MIDI CC</label><script>
+	var ccid = "dispmode_cc";
+	writeMIDIChannelSelector( "dispmode_ch", true, ccid );
+	writeMIDICCSelector( ccid );
+</script></td>
+<td><label class="hidden" for="dispitem_ch">Display Item MIDI Channel</label><label class="hidden" for="dispitem_cc">Display Item MIDI CC</label><script>
+	var ccid = "dispitem_cc";
+	writeMIDIChannelSelector( "dispitem_ch", true, ccid );
+	writeMIDICCSelector( ccid );
+</script></td>
+
+</tr>
+</tbody>
+</table>
+<script>
+changeStartStop();
+document.getElementById( "glb_transpose" ).value = 0;
+document.getElementById( "glb_triglen" ).value = 50;
+</script>
+
+<table id="mcv_table"><caption class="hidden">MIDI/CV Converters</caption>
+<tr>
+<th></th><th>Enable</th><th>MIDI<br>Channel</th><th colspan=2>Note range</th><th>Type</th>
+<th>Base<br>Output</th><th>Base<br>Gate</th>
+<th>CV</th><th>Gate</th><th>Velocity<br>Gate</th><th>Velocity</th><th>Release<br>Velocity</th><th>Trigger</th><th>Envelope</th><th>Aftertouch</th><th>Y</th>
+<th>Gate</th><th>Aftertouch</th><th>Bend</th>
+<th>Gated<br>Aftertouch</th>
+<th>Sustain</th>
+<th>Voice<br>allocation</th><th>Prevent<br>stealing</th><th>Voices</th><th>Stride</th><th>Last<br>channel</th>
+<th colspan=2>Bend<br>range</th>
+<th>Mono<br>retrigger</th>
+<th>Interrupt<br>gate</th>
+<th>Env<br>zero</th>
+</tr>
+<tr>
+<td colspan=8></td>
+<th class="tc" colspan=9>Per voice outputs</th>
+<th class="tc" colspan=3>Paraphonic outputs</th>
+<td></td>
+<td></td>
+<td></td><td></td><td></td><td></td><td></td>
+<th class="tc">Up</th><th class="tc">Down</th>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="a"><td colspan="8"></td><td colspan="8"></td><td class='tc'>CC</td><td colspan="2"></td><td colspan="12"></td>
+</tr>
+<script>
+	for ( i = 1; i < 17; ++i ) {
+		var cl = ( i & 1 ) ? "b" : "a";
+		document.write( "<tr class=" + cl + "><th>" + i + "</th>" );
+		
+		var id = "mcv_enable_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Enable MIDI-CV converter " + i + "</label><input type='checkbox' id='" + id + "'></input></td>");
+		id = "mcv_ch_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>MIDI Channel (Converter " + i + ")</label>");
+		writeMIDIChannelSelector( id );
+		document.write( "</td>" );
+		id = "mcv_min_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Minimum MIDI note number (Converter " + i + ")</label><select id='" + id + "'>" );
+		for ( j = 0; j < 128; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+		id = "mcv_max_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Maximum MIDI note number (Converter " + i + ")</label><select id='" + id + "'>" );
+		for ( j = 0; j < 128; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+		var ta = document.getElementById( id );
+		ta.value = "127";
+		id = "mcv_type_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Type (Converter " + i + ")</label><select onchange='changeType(" + i + ")' id='" + id + "'>" );
+		document.write( "<option value=0>Mono</option><option value=1>Poly</option><option value=2>MPE</option>" );
+		document.write( "</select></td>" );
+
+		id = "mcv_base_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Base output (Converter " + i + ")</label>" );
+		writeChannelSelector( id, false );
+		document.write( "</td>" );
+
+		id = "mcv_basegate_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Base gate (Converter " + i + ")</label>" );
+		writeBaseGateChannelSelector( id );
+		document.write( "</td>" );
+
+		var c = [ "C", "G", "VG", "V", "R", "T", "E", "P" ];
+		var k;
+
+		for ( k=0; k<8; ++k ) {
+			var param_label;
+
+			if (k == 0) 
+		{
+			param_label = "CV";
+		}
+		else if (k == 1)
+		{
+			param_label = "Gate";
+		}
+		else if (k == 2)
+		{
+			param_label = "Velocity Gate";
+		}
+		else if (k == 3)
+		{
+			param_label = "Velocity";
+		}
+		else if (k == 4)
+		{
+			param_label = "Release Velocity";
+		}
+		else if (k == 5)
+		{
+			param_label = "Trigger";
+		}
+		else if (k == 6)
+		{
+			param_label = "Envelope";
+		}
+		else if (k == 7)
+		{
+			param_label = "MPE Aftertouch";
+		}
+		else
+		{
+			param_label = "unknown";
+		}
+
+			id = "mcv_V" + c[k] + "_" + i;
+			document.write( "<td><label class='hidden' for='" + id + "'>" + param_label + " (Converter " + i + ")</label>");
+			document.write( "<input type='checkbox' id='" + id + "'></td>" );
+		}
+
+		id = "mcv_VY_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>MPE Y-axis MIDI CC (Converter " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		document.write( "<option value='0'>--</option>" );
+		for ( j = 1; j < 128; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+
+		var c = [ "G", "A" ];
+		for ( k=0; k<2; ++k ) {
+			var param_label;
+
+		if (k == 0)
+		{
+			param_label = "Paraphonic Gate";
+		}
+		else if (k == 1)
+		{
+			param_label = "Paraphonic Aftertouch";
+		}
+		else
+		{
+			param_label = "unknown";
+		}
+
+			id = "mcv_" + c[k] + "_" + i;
+			document.write( "<td><label class='hidden' for='" + id + "'>" + param_label + " (Converter " + i + ")</label>");
+			document.write( "<input type='checkbox' id='" + id + "'></td>" );
+		}
+
+		id = "mcv_PB_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Pitch Bend output (Converter " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		document.write( "<option value='0'>--</option><option value='1'>Single</option><option value='2'>Double</option>" );
+		document.write( "</select></td>" );
+
+		id = "mcv_GA_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Gated Aftertouch (Converter " + i + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+
+		id = "mcv_SUS_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Sustain (Converter " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		document.write( "<option value=0>Off</option><option value=1>Sustain</option><option value=2>Sostenuto</option><option value=3>Both</option>" );
+		document.write( "</select></td>" );
+
+		id = "mcv_scheme_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Voice Allocation (Converter " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		document.write( "<option value=0>Round robin</option><option value=1>Lowest voice</option><option value=2>Unison</option><option value=3>Unison 2</option><option value=4>Note range</option>" );
+		document.write( "</select></td>" );
+
+		id = "mcv_stealing_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Prevent Stealing (Converter " + i + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+
+		id = "mcv_voices_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Voices (Converter " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		for ( j = 1; j < 17; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+
+		id = "mcv_stride_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Stride (Converter " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		for ( j = 1; j < 33; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+
+		id = "mcv_lastMPE_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Last MPE MIDI Channel (Converter " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		for ( j = 2; j < 17; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+
+		id = "mcv_bend_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Bend Range (Converter " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		for ( j = 0; j <= 64; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+		id = "mcv_benddown_" + i;
+		document.write( "<td><select id='" + id + "'><option value='0'>Same</option>" );
+		for ( j = 0; j <= 64; ++j ) {
+			document.write( "<option value='"+(j+1)+"'>" + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+
+		id = "mcv_MT_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Mono Retrigger(Converter " + i + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+
+		id = "mcv_IG_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Interrupt Gate(Converter " + i + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+
+		id = "mcv_ZS_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Env Zero(Converter " + i + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+		
+		document.write( "</tr>" );
+		
+		changeType( i );
+	}
+</script>
+</table>
+
+<table id="env_table"><caption class="hidden">Portamento, Transposition and Envelopes</caption>
+<thead>
+<tr>
+<th></th>
+<th>Portamento</th>
+<th>Transpose</th>
+<th colspan=13>Envelopes</th>
+</tr>
+<tr>
+<th></th>
+<th></th>
+<th></th>
+<th>Attack</th><th>Decay</th><th>Sustain</th><th>Release</th><th>Range</th><th>Depth</th><th>Velocity Depth</th>
+</tr>
+</thead>
+<tr>
+<td></td>
+<td class='tc' colspan=9>Preset Items - Channel/CC</td>
+</tr>
+<script>
+	for ( i = 1; i < 17; ++i ) {
+		var cl = ( i & 1 ) ? "b" : "a";
+		document.write( "<tr class=" + cl + "><td>" + i + "</td>" );
+
+		for ( var j=0; j<arpControlsUI.length; ++j ) {
+			var chid = "arpeg" + i + "_" + arpControlsUI[j] + "_ch";
+			var ccid = "arpeg" + i + "_" + arpControlsUI[j] + "_cc";
+			var param_label;
+
+if (j == 0)
+{
+param_label = "portamento";
+}
+else if (j == 1)
+{
+param_label = "transpose";
+}
+else
+{
+param_label = "error: unknown parameter";
+}
+
+			document.write( "<td><label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (Converter " + i + ")</label>");
+			writeMIDIChannelSelector( chid, true, ccid );
+			document.write( "<label class='hidden' for='" + ccid + "'>" + param_label + " MIDI CC (Converter " + i + ")</label>");
+			writeMIDICCSelector( ccid );
+			document.write( "</td>" );
+		}
+		for ( var j=0; j<mcvMappable2Controls.length; ++j ) {
+			var chid = "mcvm2_" + i + "_" + mcvMappable2Controls[j] + "_ch";
+			var ccid = "mcvm2_" + i + "_" + mcvMappable2Controls[j] + "_cc";
+			var param_label;
+
+if (j == 0)
+{
+param_label = "env. attack";
+}
+else if (j == 1)
+{
+param_label = "env. decay";
+}
+else if (j == 2)
+{
+param_label = "env. sustain";
+}
+else if (j == 3)
+{
+param_label = "env. release";
+}
+else if (j == 4)
+{
+param_label = "env. range";
+}
+else if (j == 5)
+{
+param_label = "env. depth";
+}
+else if (j == 6)
+{
+param_label = "env. velocity depth";
+}
+else
+{
+param_label = "error: unknown parameter";
+}
+
+			document.write( "<td><label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (Converter " + i + ")</label>");
+			writeMIDIChannelSelector( chid, true, ccid );
+			document.write( "<label class='hidden' for='" + ccid + "'>" + param_label + " MIDI CC (Converter " + i + ")</label>");
+			writeMIDICCSelector( ccid );
+			document.write( "</td>" );
+		}
+		document.write( "</tr>" );
+	}
+</script>
+</table>
+
+<table id="arp_table"><caption class="hidden">Arpeggiators</caption>
+<thead>
+<tr>
+<th colspan=14>Arpeggiator</th>
+</tr>
+<tr>
+<td></td>
+<th>Mode</th><th>Range</th><th>Gate Length</th><th>Latch</th><th>Rate</th><th>Reset</th>
+<th>Add</th><th>Remove</th><th>Rest</th><th>Truncate</th><th>Transpose</th><th>Transp. in key</th><th>Set root</th>
+</tr>
+</thead>
+<tr>
+<td></td>
+<td class='tc' colspan=6>Preset Items - Channel/CC</td>
+<td class='tc_a' colspan=7>Commands - Channel/CC</td>
+</tr>
+<script>
+	for ( i = 1; i < 17; ++i ) {
+		var cl = ( i & 1 ) ? "b" : "a";
+		document.write( "<tr class=" + cl + "><td>" + i + "</td>" );
+		for ( var j=0; j<arpControlsUI2.length; ++j ) {
+			var chid = "arpeg" + i + "_" + arpControlsUI2[j] + "_ch";
+			var ccid = "arpeg" + i + "_" + arpControlsUI2[j] + "_cc";
+			var param_label;
+
+if (j == 0)
+{
+param_label = "arp. mode";
+}
+else if (j == 1)
+{
+param_label = "arp. range";
+}
+else if (j == 2)
+{
+param_label = "arp. gate length";
+}
+else if (j == 3)
+{
+param_label = "arp. latch";
+}
+else if (j == 4)
+{
+param_label = "arp. rate";
+}
+else if (j == 5)
+{
+param_label = "arp. reset";
+}
+else
+{
+param_label = "error: unknown parameter";
+}
+
+			document.write( "<td><label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (Converter " + i + ")</label>");
+			writeMIDIChannelSelector( chid, true, ccid );
+			document.write( "<label class='hidden' for='" + ccid + "'>" + param_label + " MIDI CC (Converter " + i + ")</label>");
+			writeMIDICCSelector( ccid );
+			document.write( "</td>" );
+		}
+		for ( var k=0; k<mcvCommands.length; ++k ) {
+			var chid = "mcvcom" + i + "_" + mcvCommands[k] + "_ch";
+			var ccid = "mcvcom" + i + "_" + mcvCommands[k] + "_cc";
+			var param_label;
+
+if (k == 0)
+{
+param_label = "arp. add notes";
+}
+else if (k == 1)
+{
+param_label = "arp. remove notes";
+}
+else if (k == 2)
+{
+param_label = "arp. rest";
+}
+else if (k == 3)
+{
+param_label = "arp. truncate";
+}
+else if (k == 4)
+{
+param_label = "arp. transpose";
+}
+else if (k == 5)
+{
+param_label = "arp. transpose in key";
+}
+else if (k == 6)
+{
+param_label = "arp. set root";
+}
+else
+{
+param_label = "error: unknown parameter";
+}
+
+			document.write( "<td><label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (Converter " + i + ")</label>");
+			writeMIDIChannelSelector( chid, true, ccid );
+			document.write( "<label class='hidden' for='" + ccid + "'>" + param_label + " MIDI CC (Converter " + i + ")</label>");
+			writeMIDICCSelector( ccid );
+			document.write( "</td>" );
+		}
+		document.write( "</tr>" );
+	}
+</script>
+</table>
+
+<table id="clk_table"><caption class="hidden">Clocks</caption>
+<tr>
+<th colspan=7>Clocks</th>
+</tr>
+<tr><td></td><th>Output</th>
+<th>Type</th><th>Base</th><th>Multiplier</th><th>Length</th><th>Shift</th>
+</tr>
+<script>
+	for ( i = 1; i < 33; ++i ) {
+		var cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + i + "</td>" );
+
+		var clkid = "clk_" + i;
+
+		id = clkid + "_output";
+		document.write( "<td><label class='hidden' for='" + id + "'>Output (Clock " + i + ")</label>");
+		writeGateChannelSelector( id, false );
+		document.write( "</td>" );
+
+		id = clkid + "_type";
+		document.write( "<td><label class='hidden' for='" + id + "'>Type (Clock " + i + ")</label>");
+		document.write( "<select onchange='changeClock(\"" + clkid + "\")' id='" + id + "'>" );
+		document.write( "<option value='0'>--</option><option value='1'>Clock</option><option value='2'>Run/Stop</option><option value='3'>Stop/Run</option><option value='4'>Start/Continue Trigger</option><option value='5'>Stop Trigger</option><option value='6'>Start/Continue/Stop Trigger</option><option value='7'>Start Only Trigger</option><option value='8'>Start/Stop Trigger</option>" );
+		document.write( "</select></td>" );
+		id = clkid + "_base";
+		document.write( "<td><label class='hidden' for='" + id + "'>Base (Clock " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		document.write( "<option value='96'>1/1</option><option value='48'>1/2</option><option value='24'>1/4</option><option value='16'>1/4T</option><option value='12'>1/8</option><option value='8'>1/8T</option><option value='6'>1/16</option><option value='4'>1/16T</option><option value='3'>1/32</option><option value='2'>1/32T</option><option value='1'>1/64T</option>" );
+		document.write( "</select></td>" );
+		document.getElementById( id ).value = 24;
+		id = clkid + "_mult";
+		document.write( "<td><label class='hidden' for='" + id + "'>Multiplier (Clock " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		var j;
+		for ( j = 1; j < 128; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+		id = clkid + "_len";
+		document.write( "<td><label class='hidden' for='" + id + "'>Length (Clock " + i + ")</label>");
+		document.write( "<select id='" + id + "'><option value='0'>50% PW</option>" );
+		var j;
+		for ( j = 1; j < 128; ++j ) {
+			document.write( "<option value='"+j+"'>" + j + " ms</option>" );
+		}
+		document.write( "</select></td>" );
+		id = clkid + "_shift";
+		document.write( "<td><label class='hidden' for='" + id + "'>Shift (Clock " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		document.write( "<option value='0'>0</option><option value='96'>1/1</option><option value='84'>7/8</option><option value='72'>3/4</option><option value='48'>1/2</option><option value='24'>1/4</option><option value='16'>1/4T</option><option value='12'>1/8</option><option value='8'>1/8T</option><option value='6'>1/16</option><option value='4'>1/16T</option><option value='3'>1/32</option><option value='2'>1/32T</option><option value='1'>1/64T</option>" );
+		document.write( "</select></td>" );
+		changeClock( clkid );
+	}
+</script>
+</table>
+
+<table id="trg_table"><caption class="hidden">Triggers</caption>
+<tr>
+<th colspan=6>Triggers/Gates</th>
+</tr>
+<tr><td></td><th>Output</th>
+<th>Type</th><th>Channel</th><th>Note</th><th>Envelope Settings</th>
+</tr>
+<script>
+	for ( i = 1; i <= 64; ++i ) {
+		var cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + i + "</td>" );
+
+		var clkid = "trg_" + i;
+
+		id = clkid + "_output";
+		document.write( "<td><label class='hidden' for='" + id + "'>Output (Trigger " + i + ")</label>");
+		writeGateChannelSelector( id, false );
+		document.write( "</td>" );
+
+		id = clkid + "_type";
+		document.write( "<td><label class='hidden' for='" + id + "'>Type (Trigger " + i + ")</label>");
+		document.write( "<select onchange='changeTrigger(\"" + clkid + "\")' id='" + id + "'>" );
+		document.write( "<option value='0'>--</option><option value='1'>Trigger</option><option value='2'>Gate</option><option value='3'>Velocity Trig</option><option value='4'>Velocity Gate</option><option value='5'>Accent Trig</option><option value='6'>Accent Gate</option><option value='7'>Toggle</option><option value='8'>On/off Trig</option><option value='9'>Envelope</option>" );
+		document.write( "</select></td>" );
+		id = clkid + "_ch";
+		document.write( "<td><label class='hidden' for='" + id + "'>MIDI channel (Trigger " + i + ")</label>");
+		writeMIDIChannelSelector( id );
+		document.write( "</td>" );
+		id = clkid + "_note";
+		document.write( "<td><label class='hidden' for='" + id + "'>MIDI note (Trigger " + i + ")</label>");
+		writeMIDICCSelector( id, false );
+		document.write( "</td>" );
+		id = clkid + "_env";
+		document.write( "<td><label class='hidden' for='" + id + "'>Envelope settings (Trigger " + i + ")</label>");
+		writeMIDIChannelSelector( id );
+		document.write( "</td>" );
+		changeTrigger( clkid );
+	}
+</script>
+</table>
+
+<table id="euc_table"><caption class="hidden">Euclidean Patterns</caption>
+<tr>
+<th colspan=10>Euclidean Patterns</th>
+</tr>
+<tr><td></td><th>Output</th><th>Off Output</th>
+<th>Pulses</th><th>Steps</th><th>Rotation</th><th>Rate</th><th>Gate Length</th><th>Accent Rate</th><th>Reset</th>
+</tr>
+<tr><td></td><td></td><td></td>
+<td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td>
+<td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td>
+</tr>
+<script>
+	for ( i = 1; i < 17; ++i ) {
+		var cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + i + "</td>" );
+		id = "euc_output_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Output (Pattern " + i + ")</label>");
+		writeGateChannelSelector( id, true );
+		document.write( "</td>" );
+		document.getElementById( id ).value = i-1;
+		id = "euc_offoutput_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Off output (Pattern " + i + ")</label>");
+		writeGateChannelSelector( id, true );
+		document.write( "</td>" );
+		for ( var j=0; j<eucControls.length; ++j ) {
+			var param_label;
+			var chid = "euc_" + i + "_" + eucControls[j] + "_ch";
+			var ccid = "euc_" + i + "_" + eucControls[j] + "_cc";
+
+			if (j == 0)
+{
+param_label = "Pulses";
+}
+else if (j == 1)
+{
+param_label = "Steps";
+}
+else if (j == 2)
+{
+param_label = "Rotation";
+}
+else if (j == 3)
+{
+param_label = "Rate";
+}
+else if (j == 4)
+{
+param_label = "Gate Length";
+}
+else if (j == 5)
+{
+param_label = "Accent Rate";
+}
+else if (j == 6)
+{
+param_label = "Reset";
+}
+else
+{
+param_label = "error: unknown parameter";
+}
+
+			document.write( "<td><label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (Pattern " + i + ")</label>");
+			writeMIDIChannelSelector( chid, true, ccid );
+			document.write( "<label class='hidden' for='" + ccid  + "'>" + param_label + "MIDI CC (Pattern " + i + ")</label>");
+			writeMIDICCSelector( ccid );
+			document.write( "</td>" );
+		}
+	}
+</script>
+</table>
+
+<script>
+	function changeLfoReset( out ) {
+		var t = document.getElementById( "lfotrig_type_" + out ).value;
+    	document.getElementById( "lfotrig_ch_" + out ).style.display = ( t > 0 ) ? "inline" : "none";
+    	document.getElementById( "lfotrig_cc_" + out ).style.display = ( t > 0 && t < 3 ) ? "inline" : "none";
+	}
+
+	var ac = [ "DC", "LFO", "CLK", "CLKM", "MLT", "SIN", "SQR", "PW", "TRI", "SAW", "RND", "NSE", "PHS", "FAD", "SMO" ];
+	var acc = [ 0, 1, 7, 8, 2, 3, 4, 6, 5, 3,  4,  5,  7,  8,  6 ];
+	var aco = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, 64, 64, 64, 64, 64 ];
+	var acMapLow = new Int8Array( ac.length );
+	var acMapHigh = new Int8Array( ac.length );
+	for ( var i=0; i<ac.length; ++i ) {
+		acMapLow[i] = -1;
+		acMapHigh[i] = -1;
+	}
+	for ( var i=0; i<ac.length; ++i ) {
+		if ( aco[i] > 0 ) {
+			acMapHigh[ acc[i] ] = i;
+		}
+		else {
+			acMapLow[ acc[i] ] = i;
+		}
+	}
+
+	var id;
+	var x;
+	for ( x = 0; x < 8; ++x ) {
+
+		document.write( "<table id='outs" + x + "_table'>" );
+		document.write( "<tr><th colspan=4>" + ( x ? ( "Expander " + x ) : "FH-2" ) + "</th><th colspan=2>LFO Tempo-based</th>" );
+		document.write( "<th colspan=13>LFO</th>" );
+		document.write( "<th colspan=3>" + ( x ? ( "Expander " + x ) : "FH-2" ) + "</th></tr>" );
+		document.write( "<tr><td></td><th>Output Range</th><th>Direct Control</th><th>LFO Speed</th><th>Base</th><th>Multiplier</th><th>LFO Level</th>" );
+		document.write( "<th>Sine</th><th>Square</th><th>PW</th><th>Triangle</th><th>Saw</th>" );
+		document.write( "<th>Random</th><th>Noise</th><th>Phase</th><th colspan=3>Reset</th><th>Fade</th>" );
+		document.write( "<th>Smoothing</th><th colspan=2>Gate Levels</th>" );
+		document.write( "</tr>" );
+		document.write( "<tr class='a'>" );
+		document.write( "<th>Output</th><td></td>" );
+		for ( j=0; j<ac.length-2; ++j ) {
+			document.write( "<td class='tc'>Channel/CC</td>" );
+		}
+		document.write( "<td class='tc'>Type</td><td class='tc'>Channel or MCV</td><td class='tc'>CC or Note</td>" );
+		document.write( "<td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td>" );
+		document.write( "<th>Low</th><th>High</th>" );
+		document.write( "</tr>" );
+	
+		for ( i = 0; i < 8; ++i ) {
+			var cl = ( i & 1 ) ? "a" : "b";
+			document.write( "<tr class=" + cl + "><td>" + (i+1) + "</td>" );
+			var out = x * 8 + i;
+
+			var id = "rng_" + (out+1);
+			document.write( "<td><label class='hidden' for='" + id + "'>Range (Output " + (i + 1) + ")</label>" );
+			document.write( "<select id='" + id + "'>" );
+			document.write( "<option value=0>0-10V</option><option value=1>&plusmn;5V</option><option value=2>0-1V</option><option value=3>0-5V</option><option value=4>0-8V</option>" );
+			document.write( "</select></td>" );
+
+			for ( j=0; j<ac.length; ++j ) {
+				var chid = "out_" + ac[j] + "_ch_" + out;
+				var ccid = "out_" + ac[j] + "_cc_" + out;
+				var param_label;
+
+if (j == 0)
+{
+param_label = "direct control";
+}
+else if (j == 1)
+{
+param_label = "LFO speed";
+}
+else if (j == 2)
+{
+param_label = "base";
+}
+else if (j == 3)
+{
+param_label = "Multiplier";
+}
+else if (j == 4)
+{
+param_label = "level";
+}
+else if (j == 5)
+{
+param_label = "sine";
+}
+else if (j == 6)
+{
+param_label = "square";
+}
+else if (j == 7)
+{
+param_label = "PW";
+}
+else if (j == 8)
+{
+param_label = "triangle";
+}
+else if (j == 9)
+{
+param_label = "saw";
+}
+else if (j == 10)
+{
+param_label = "random";
+}
+else if (j == 11)
+{
+param_label = "noise";
+}
+else if (j == 12)
+{
+param_label = "phase";
+}
+else if (j == 13)
+{
+param_label = "fade";
+}
+else if (j == 14)
+{
+param_label = "smoothing";
+}
+
+				document.write( "<td>" );
+				document.write( "<label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (Output " + (i + 1) + ")</label>" );
+				writeMIDIChannelSelector( "out_" + ac[j] + "_ch_" + out, true, ccid );
+				document.write( "<label class='hidden' for='" + ccid + "'>" + param_label + " MIDI CC (Output " + (i + 1) + ")</label>" );
+				writeMIDICCSelector( ccid );
+				document.write( "</td>" );
+				if ( j == 12 )
+				{
+					var id = "lfotrig_type_" + (out+1);
+					document.write( "<td><label class='hidden' for='" + id + "'>Reset type (Output " + (i + 1) + ")</label>" );
+					document.write( "<select id='" + id + "' onchange='changeLfoReset(\"" + (out+1) + "\")'>" );
+					document.write( "<option value=0>Off</option><option value=1>CC</option><option value=2>Note</option><option value=3>Any note</option><option value=4>Paraphonic</option><option value=5>Poly voice</option>" );
+					document.write( "</select></td>" );
+					var id = "lfotrig_ch_" + (out+1);
+					document.write( "<td><label class='hidden' for='" + id + "'>Reset Channel or MCV (Output " + (i + 1) + ")</label>" );
+					document.write( "<select id='" + id + "'>" );
+					var k;
+					for ( k=1; k<=16; ++k ) {
+						document.write( "<option value=" + (k-1) + ">" + k + "</option>" );
+					}
+					document.write( "</select></td>" );
+					var ccid = "lfotrig_cc_" + (out+1);
+					document.write( "<td><label class='hidden' for='" + ccid + "'>Reset CC or Note (Output " + (i + 1) + ")</label>" );
+					writeMIDICCSelector( ccid, false );
+					document.write( "</td>" );
+				}
+			}
+			
+			var gtid = "out_gt_" + out;
+			id = gtid + "_lo";
+			document.write( "<td><label class='hidden' for='" + id + "'>Gate level - low (Output " + (i + 1) + ")</label>" );
+			document.write( "<input onchange='changeGateLevel(\"" + id + "\")' type='text' id='" + id + "' min=0 max=16383 size=5 type='number' value='0'></td>" );
+			id = gtid + "_hi";
+			document.write( "<td><label class='hidden' for='" + id + "'>Gate level - high (Output " + (i + 1) + ")</label>" );
+			document.write( "<input onchange='changeGateLevel(\"" + id + "\")' type='text' id='" + id + "' min=0 max=16383 size=5 type='number' value='16383'></td>" );
+
+			document.write( "</tr>" );
+			
+			changeLfoReset( out+1 );
+		}
+		
+		document.write( "</table>" );
+		if ( x > 0 ) {
+			showHide( "outs" + x + "_table", false );
+		}
+	}
+
+</script>
+
+<table id="hid_table"><caption class='hidden'>Gamepad Configurator</caption>
+<tr>
+<th colspan=5>HID Gamepad</th>
+</tr>
+<tr><td></td><th>Output</th><th>Usage</th>
+<th>Scale</th><th>Offset</th>
+</tr>
+<script>
+	for ( i = 1; i < 33; ++i ) {
+		var cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + i + "</td>" );
+		id = "hid_" + i + "_output";
+		document.write( "<td><label class='hidden' for='" + id + "'>Output (GamePad " + i + ")</label>");
+		writeGateChannelSelector( id, true );
+		document.write( "</td>" );
+		document.getElementById( id ).value = i-1;
+		var usage_id = "hid_" + i + "_usage";
+		document.write( "<td><label class='hidden' for='" + usage_id + "'>Useage (GamePad " + i + ")</label>");
+		document.write( "<select onchange='changeHidUsage(\"" + usage_id + "\", " + i + ")' id='" + usage_id + "'>" );
+		document.write( "<option value='0'>--</option><option value='20'>X</option><option value='21'>Y</option><option value='22'>Z</option>" );
+		document.write( "<option value='23'>Rx</option><option value='24'>Ry</option><option value='25'>Rz</option>" );
+		document.write( "<option value='26'>Slider</option><option value='27'>Dial</option><option value='28'>Wheel</option>" );
+		document.write( "<option value='29'>Hat</option><option value='30'>HatU</option><option value='31'>HatD</option>" );
+		document.write( "<option value='32'>HatL</option><option value='33'>HatR</option>" );
+		for ( j = 1; j < 20; ++j ) {
+			document.write( "<option value='" + j + "'>Button" + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+		id = "hid_" + i + "_scale";
+		document.write( "<td><label class='hidden' for='" + id + "'>Scale (GamePad " + i + ")</label>");
+		document.write( "<input onchange='changeHidScale(\"" + id + "\")' type='text' id='" + id + "' min=-256 max=256 size=5 type='number' value='0'></td>" );
+		id = "hid_" + i + "_offset";
+		document.write( "<td><label class='hidden' for='" + id + "'>Offset (GamePad " + i + ")</label>");
+		document.write( "<input onchange='changeHidOffset(\"" + id + "\")' type='text' id='" + id + "' min=0 max=4096 size=5 type='number' value='0'></td>" );
+		changeHidUsage( usage_id, i );
+	}
+</script>
+</table>
+
+<table id="kbd_table"><caption class='hidden'>Keyboard Configurator</caption>
+<tr>
+<th colspan=6>HID Keyboard</th>
+</tr>
+<tr><td></td><th>Output</th><th>Type</th><th>Key</th>
+<th>Release</th><th>Press</th>
+</tr>
+<script>
+	var kbdCodes = [ "","","","","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z",
+					"1","2","3","4","5","6","7","8","9","0",
+					"Return","Escape","Delete","Tab","Spacebar","Minus","Equal","[","]","\\","#",";","'","`",",",".","/","Caps Lock",
+					"F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
+					"Print","Scroll","Pause","Insert","Home","Page Up","Delete","End","Page Down","Right","Left","Down","Up",
+					"Num Lock","Keypad /","Keypad *","Keypad -","Keypad +","Keypad Enter",
+					"Keypad 1","Keypad 2","Keypad 3","Keypad 4","Keypad 5","Keypad 6","Keypad 7","Keypad 8","Keypad 9","Keypad 0",
+					"Keypad ."
+	];
+	for ( i = 1; i < 33; ++i ) {
+		var cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + i + "</td>" );
+		id = "kbd_" + i + "_output";
+		document.write( "<td><label class='hidden' for='" + id + "'>Output (Keyboard " + i + ")</label>");
+		writeGateChannelSelector( id, true );
+		document.write( "</td>" );
+		document.getElementById( id ).value = i-1;
+		id = "kbd_" + i + "_type";
+		document.write( "<td><label class='hidden' for='" + id + "'>Type (Keyboard " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		document.write( "<option value='0'>--</option><option value='1'>Press/Release</option><option value='2'>Press only</option>" );
+		document.write( "</select></td>" );
+		id = "kbd_" + i + "_key";
+		document.write( "<td><label class='hidden' for='" + id + "'>Key (Keyboard " + i + ")</label>");
+		document.write( "<select id='" + id + "'>" );
+		for ( j = 0; j < kbdCodes.length; ++j ) {
+			if ( kbdCodes[j] != "" ) {
+				document.write( "<option value='" + j + "'>" + kbdCodes[j] + "</option>" );
+			}
+		}
+		document.write( "</select></td>" );
+		id = "kbd_" + i + "_value0";
+		document.write( "<td><label class='hidden' for='" + id + "'>Value 0 (Keyboard " + i + ")</label>");
+		document.write( "<input onchange='changeGateLevel(\"" + id + "\")' type='text' id='" + id + "' min=0 max=16383 size=5 type='number' value='0'></td>" );
+		id = "kbd_" + i + "_value1";
+		document.write( "<td><label class='hidden' for='" + id + "'>Value 1 (Keyboard " + i + ")</label>");
+		document.write( "<input onchange='changeGateLevel(\"" + id + "\")' type='text' id='" + id + "' min=0 max=16383 size=5 type='number' value='16383'></td>" );
+	}
+</script>
+</table>
+
+<table id="cvm_table"><caption class='hidden'>CV/MIDI Configurator</caption>
+<tr><th colspan=7>CV/MIDI</th><th colspan=4>Output to</th></tr>
+<tr>
+<th></th><th>Enable</th><th>Type</th><th>Channel</th><th>CC or Note</th><th>0V</th><th>5V</th>
+<th>Internal</th><th>USB A</th><th>USB C</th><th>DIN</th>
+</tr>
+<script>
+	var cvms = [ 'X', 'Y' ];
+	for ( var i=0; i<2; ++i ) {
+		var cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + cvms[i] + "</td>" );
+		var id = "cvm_en_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Enable (Input " + cvms[i] + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+		var id = "cvm_type_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Type (Input " + cvms[i] + ")</label>");
+		document.write( "<select id='" + id + "'><option value=0>CC</option><option value=1>Trigger</option><option value=2>Note</option><option value=3>Program change</option><option value=4>Aftertouch</option></select>" );
+		var chid = "cvm_ch_" + i;
+		var ccid = "cvm_cc_" + i;
+		document.write( "<td><label class='hidden' for='" + chid + "'>MIDI channel (Input " + cvms[i] + ")</label>");
+		writeMIDIChannelSelector( chid, false, ccid );
+		document.write( "</td>");
+
+		document.write( "<td><label class='hidden' for='" + ccid + "'>MIDI CC (Input " + cvms[i] + ")</label>");
+		writeMIDICCSelector( ccid, false, false );
+		document.write( "</td>" );
+
+		var id = "cvm_0v_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>0V Level (Input " + cvms[i] + ")</label>");
+		document.write( "<input onchange='changeCVMLevel(\"" + id + "\")' type='text' id='" + id + "' min=-16383 max=16383 size=5 type='number' value='0'></td>" );
+
+		var id = "cvm_5v_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>5V Level (Input " + cvms[i] + ")</label>");
+		document.write( "<input onchange='changeCVMLevel(\"" + id + "\")' type='text' id='" + id + "' min=-16383 max=16383 size=5 type='number' value='0'></td>" );
+
+		var id = "cvm_outI_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Output to Internal (Input " + cvms[i] + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+
+		var id = "cvm_outA_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Output to USB A (Input " + cvms[i] + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+
+		var id = "cvm_outC_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Output to USB C (Input " + cvms[i] + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+
+		var id = "cvm_outD_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Output to DIN (Input " + cvms[i] + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+		document.write( "</tr>" );
+	}
+</script>
+</table>
+
+<script>
+showHide( "glb_table", false );
+showHide( "env_table", false );
+showHide( "arp_table", false );
+showHide( "clk_table", false );
+showHide( "trg_table", false );
+showHide( "euc_table", false );
+showHide( "hid_table", false );
+showHide( "kbd_table", false );
+showHide( "cvm_table", false );
+</script>
+
+<script>
+function parseMcv( data, c, m ) {
+	// enable
+	document.getElementById( "mcv_enable_" + m ).checked = data[c];	c += 1;
+	// channel
+	var ch = data[c]; c += 1;
+	if ( ch >= 0 && ch <= 15 ) {
+		document.getElementById( "mcv_ch_" + m ).value = ch+1;
+	}
+	// min/max
+	var r = data[c]; c += 1;
+	if ( r >= 0 && r <= 127 ) {
+		document.getElementById( "mcv_min_" + m ).value = r;
+	}
+	var r = data[c]; c += 1;
+	if ( r >= 0 && r <= 127 ) {
+		document.getElementById( "mcv_max_" + m ).value = r;
+	}
+	// type
+	var r = data[c]; c += 1;
+	document.getElementById( "mcv_type_" + m ).value = r;
+	// polyphony
+	var r = data[c]; c += 1;
+	if ( r >= 1 && r <= 16 ) {
+		document.getElementById( "mcv_voices_" + m ).value = r;
+	}
+	// bend depth
+	document.getElementById( "mcv_bend_" + m ).value = data[c];	c += 1;
+	// voice allocation scheme
+    document.getElementById( "mcv_scheme_" + m ).value = data[c];	c += 1;
+	// ignore surplus
+	document.getElementById( "mcv_stealing_" + m ).checked = data[c];	c += 1;
+	// gated pressure
+	document.getElementById( "mcv_GA_" + m ).checked = data[c];	c += 1;
+	// sustain
+	document.getElementById( "mcv_SUS_" + m ).value = data[c];	c += 1;
+	// base output
+	var r = data[c]; c += 1;
+	if ( r >= 0 && r <= 63 ) {
+		document.getElementById( "mcv_base_" + m ).value = r;
+	}
+	// stride
+	var r = data[c]; c += 1;
+	if ( r >= 1 && r <= 32 ) {
+		document.getElementById( "mcv_stride_" + m ).value = r;
+	}
+	// last MPE
+	document.getElementById( "mcv_lastMPE_" + m ).value = data[c]+1;	c += 1;
+	// pressure
+	document.getElementById( "mcv_A_" + m ).checked = data[c];	c += 1;
+	// para gate
+	document.getElementById( "mcv_G_" + m ).checked = data[c];	c += 1;
+	// cv output
+	document.getElementById( "mcv_VC_" + m ).checked = data[c];	c += 1;
+	// gate output
+	document.getElementById( "mcv_VG_" + m ).checked = data[c];	c += 1;
+	// vel gate output
+	document.getElementById( "mcv_VVG_" + m ).checked = data[c];	c += 1;
+	// vel output
+	document.getElementById( "mcv_VV_" + m ).checked = data[c];	c += 1;
+	// rel vel output
+	document.getElementById( "mcv_VR_" + m ).checked = data[c];	c += 1;
+	// trigger output
+	document.getElementById( "mcv_VT_" + m ).checked = data[c];	c += 1;
+	// voice pressure output
+	document.getElementById( "mcv_VP_" + m ).checked = data[c];	c += 1;
+	// MPE Y output/CC
+	document.getElementById( "mcv_VY_" + m ).value = data[c];	c += 1;
+	// envelope output
+	document.getElementById( "mcv_VE_" + m ).checked = data[c];	c += 1;
+	// base gate output
+	var r = data[c]; c += 1;
+	if ( r < 64 || r > 127 ) {
+		r = 0;
+	}
+	document.getElementById( "mcv_basegate_" + m ).value = r;
+	// mono retrigger
+	document.getElementById( "mcv_MT_" + m ).checked = data[c];	c += 1;
+	// interrupt gate
+	document.getElementById( "mcv_IG_" + m ).checked = data[c];	c += 1;
+	// env zero start
+	document.getElementById( "mcv_ZS_" + m ).checked = data[c];	c += 1;
+	// bend down depth
+	document.getElementById( "mcv_benddown_" + m ).value = data[c];	c += 1;
+	// pitch bend output
+	document.getElementById( "mcv_PB_" + m ).value = data[c];	c += 1;
+
+	changeType( m );
+}
+function parseConfigDump( data ) {
+	var c = 0;
+	// version
+	var version = ( data[c] ) | ( data[c+1] << 8 ) | ( data[c+2] << 16 ) | ( data[c+3] << 24 )
+	if ( version != 9 )
+	{
+		alert( "This version of the tool does not match the FH-2 firmware." );
+		return;
+	}
+	c += 4;
+	// name
+	var name = "";
+	for ( var i = 0; i < 16; ++i ) {
+		var n = data[c+i];
+		if ( n == 0 ) {
+			break;
+		}
+		name += String.fromCharCode( n );
+	}
+	document.getElementById( "config_name" ).value = name;
+	c += 17;
+	// globals
+	document.getElementById( "glb_triglen" ).value = data[c];		 c += 1;
+	document.getElementById( "glb_transpose" ).value = unSysexSafeSignedChar( data[c] );		 c += 1;
+	document.getElementById( "glb_legvel" ).checked = data[c];		 c += 1;
+	document.getElementById( "glb_extclkmult" ).value = data[c];		 c += 1;
+	document.getElementById( "glb_extclkrun" ).value = data[c];		 c += 1;
+	document.getElementById( "glb_presetprogch" ).value = data[c];		 c += 1;
+	document.getElementById( "glb_softtakeover" ).checked = data[c];		 c += 1;
+	// output ranges
+	for ( var i = 1; i < 65; ++i ) {
+		document.getElementById( "rng_" + i ).value = data[c]; c += 1;
+	} 
+	// mcvs
+	for ( var i = 0; i < 16; ++i ) {
+		parseMcv( data, c, i+1 );
+		c += 32;
+	}
+	// mappings
+	for ( j=0; j<ac.length; ++j ) {
+		for ( i = 0; i < 64; ++i ) {
+			var ccid = "out_" + ac[j] + "_cc_" + i;
+			document.getElementById( "out_" + ac[j] + "_ch_" + i ).value = -1;
+			var ta = document.getElementById( ccid );
+			ta.value = -1;
+			ta.style.display = "none";
+		}
+	}
+	for ( j=1; j<17; ++j ) {
+		var id = "arpeg" + j + "_";
+		for ( i = 0; i < arpControls.length; ++i ) {
+			var ccid = id + arpControls[i] + "_cc";
+			document.getElementById( id + arpControls[i] + "_ch" ).value = -1;
+			var ta = document.getElementById( ccid );
+			ta.value = -1;
+			ta.style.display = "none";
+		}
+		var id = "mcvcom" + j + "_";
+		for ( i = 0; i < mcvCommands.length; ++i ) {
+			var ccid = id + mcvCommands[i] + "_cc";
+			document.getElementById( id + mcvCommands[i] + "_ch" ).value = -1;
+			var ta = document.getElementById( ccid );
+			ta.value = -1;
+			ta.style.display = "none";
+		}
+		var id = "mcvm2_" + j + "_";
+		for ( i = 0; i < mcvMappable2Controls.length; ++i ) {
+			var ccid = id + mcvMappable2Controls[i] + "_cc";
+			document.getElementById( id + mcvMappable2Controls[i] + "_ch" ).value = -1;
+			var ta = document.getElementById( ccid );
+			ta.value = -1;
+			ta.style.display = "none";
+		}
+	}
+	for ( j=1; j<17; ++j ) {
+		var id = "euc_" + j + "_";
+		for ( i = 0; i < eucControls.length; ++i ) {
+			var ccid = id + eucControls[i] + "_cc";
+			document.getElementById( id + eucControls[i] + "_ch" ).value = -1;
+			var ta = document.getElementById( ccid );
+			ta.value = -1;
+			ta.style.display = "none";
+		}
+	}
+			document.getElementById( "glb_tempo_ch" ).value = -1;
+			var ta = document.getElementById( "glb_tempo_cc" );
+			ta.value = -1;
+			ta.style.display = "none";
+			document.getElementById( "dispmode_ch" ).value = -1;
+			var ta = document.getElementById( "dispmode_cc" );
+			ta.value = -1;
+			ta.style.display = "none";
+			document.getElementById( "dispitem_ch" ).value = -1;
+			var ta = document.getElementById( "dispitem_cc" );
+			ta.value = -1;
+			ta.style.display = "none";
+	for ( var i = 0; i < 384; ++i ) {
+		var ch = data[c+0];
+		var cc = data[c+1];
+		var t0 = data[c+2];
+		var t1 = data[c+3];
+		if ( ( ch >> 4 ) == 3 ) {
+			ch = ch & 0xf;
+			if ( t0 <= 8 ) {
+				var aci = acMapLow[t0];
+				if ( t1 >= 64 ) {
+					t1 -= 64;
+					aci = acMapHigh[t0];
+				}
+				if ( aci >= 0 ) {
+					if ( t1 >= 0 && t1 < 64 ) {
+						var id = "out_" + ac[aci] + "_ch_" + t1;
+						var ccid = "out_" + ac[aci] + "_cc_" + t1;
+						document.getElementById( id ).value = ch+1;
+						document.getElementById( ccid ).value = cc;
+						changeMIDIChannel( id, ccid );
+					}
+				}
+			}
+			else {		// t0 > 8
+				if ( t0 == 9 ) {
+					var j = ( t1 >> 3 ) + 1;
+					var k = t1 & 7;
+					if ( k >= 0 && k < arpControls.length ) {
+						var id = "arpeg" + j + "_";
+						var ccid = id + arpControls[k] + "_cc";
+						id = id + arpControls[k] + "_ch";
+						document.getElementById( id ).value = ch+1;
+						document.getElementById( ccid ).value = cc;
+						changeMIDIChannel( id, ccid );
+					}
+				}
+				else if ( t0 == 10 ) {
+					var j = ( t1 >> 3 ) + 1;
+					var k = t1 & 7;
+					if ( k >= 0 && k < eucControls.length ) {
+						var id = "euc_" + j + "_";
+						var ccid = id + eucControls[k] + "_cc";
+						id = id + eucControls[k] + "_ch";
+						document.getElementById( id ).value = ch+1;
+						document.getElementById( ccid ).value = cc;
+						changeMIDIChannel( id, ccid );
+					}
+				}
+				else if ( t0 == 11 ) {
+					var j = ( t1 >> 3 ) + 1;
+					var k = t1 & 7;
+					if ( k >= 0 && k < mcvCommands.length ) {
+						var id = "mcvcom" + j + "_";
+						var ccid = id + mcvCommands[k] + "_cc";
+						id = id + mcvCommands[k] + "_ch";
+						document.getElementById( id ).value = ch+1;
+						document.getElementById( ccid ).value = cc;
+						changeMIDIChannel( id, ccid );
+					}
+				}
+				else if ( t0 == 12 ) {
+					var j = ( t1 >> 3 ) + 1;
+					var k = t1 & 7;
+					if ( k >= 0 && k < mcvMappable2Controls.length ) {
+						var id = "mcvm2_" + j + "_";
+						var ccid = id + mcvMappable2Controls[k] + "_cc";
+						id = id + mcvMappable2Controls[k] + "_ch";
+						document.getElementById( id ).value = ch+1;
+						document.getElementById( ccid ).value = cc;
+						changeMIDIChannel( id, ccid );
+					}
+				}
+				else if ( t0 == 69 ) {
+					var id = "glb_tempo_ch";
+					var ccid = "glb_tempo_cc";
+					document.getElementById( id ).value = ch+1;
+					document.getElementById( ccid ).value = cc;
+					changeMIDIChannel( id, ccid );
+				}
+				else if ( t0 == 71 ) {
+					var id = "dispmode_ch";
+					var ccid = "dispmode_cc";
+					document.getElementById( id ).value = ch+1;
+					document.getElementById( ccid ).value = cc;
+					changeMIDIChannel( id, ccid );
+				}
+				else if ( t0 == 72 ) {
+					var id = "dispitem_ch";
+					var ccid = "dispitem_cc";
+					document.getElementById( id ).value = ch+1;
+					document.getElementById( ccid ).value = cc;
+					changeMIDIChannel( id, ccid );
+				}
+			}
+		}
+		c += 4;
+	}
+	// clocks
+	for ( var i = 1; i < 33; ++i ) {
+		var clkid = "clk_" + i;
+		document.getElementById( clkid + "_type" ).value = data[c+0];
+		document.getElementById( clkid + "_base" ).value = data[c+1];
+		document.getElementById( clkid + "_mult" ).value = data[c+2];
+		document.getElementById( clkid + "_len" ).value = data[c+3];
+		document.getElementById( clkid + "_output" ).value = data[c+4];
+		document.getElementById( clkid + "_shift" ).value = data[c+5];
+		changeClock( clkid );
+		c += 8;
+	}
+	// gate levels
+	for ( var i = 0; i < 64; ++i ) {
+		var gtid = "out_gt_" + i;
+		var v = unSysexSafeShort( data[c+0] | ( data[c+1] << 8 ) );
+		document.getElementById( gtid + "_lo" ).value = v;
+		var v = unSysexSafeShort( data[c+2] | ( data[c+3] << 8 ) );
+		document.getElementById( gtid + "_hi" ).value = v;
+		c += 4;
+	}
+	// triggers
+	for ( var i = 1; i <= 64; ++i ) {
+		var clkid = "trg_" + i;
+		document.getElementById( clkid + "_type" ).value = data[c+0] & 0xf;
+		document.getElementById( clkid + "_ch" ).value = ( data[c+1] & 0xf ) + 1;
+		document.getElementById( clkid + "_note" ).value = data[c+2];
+		document.getElementById( clkid + "_output" ).value = data[c+3];
+		document.getElementById( clkid + "_env" ).value = ( ( ( data[c+0] >> 4 ) << 1 ) | ( ( data[c+1] >> 4 ) & 1 ) ) + 1;
+		changeTrigger( clkid );
+		c += 4;
+	}
+	// euclidean outputs
+	for ( var i = 1; i < 17; ++i ) {
+		document.getElementById( "euc_output_" + i ).value = data[c];
+		c += 1;
+	}
+	// globals
+	document.getElementById( "glb_taptype" ).value = data[c];		 c += 1;
+	document.getElementById( "glb_tapch" ).value = data[c];		 	 c += 1;
+	document.getElementById( "glb_tapcc" ).value = data[c];		 	 c += 1;
+	document.getElementById( "glb_eucaccent" ).value = data[c];		 c += 1;
+	document.getElementById( "glb_starttype" ).value = data[c];		 c += 1;
+	document.getElementById( "glb_startch" ).value = data[c];		 c += 1;
+	document.getElementById( "glb_startcc" ).value = data[c];		 c += 1;
+	c += 1;
+	// euclidean off outputs
+	for ( var i = 1; i < 17; ++i ) {
+		document.getElementById( "euc_offoutput_" + i ).value = data[c];
+		c += 1;
+	}
+	// gamepad mappings
+	for ( var i = 1; i < 33; ++i ) {
+		var gtid = "hid_" + i;
+		var usage_id = gtid + "_usage";
+		document.getElementById( usage_id ).value = data[c+0];
+		document.getElementById( gtid + "_output" ).value = data[c+1];
+		var v = unSysexSafeSignedShort( data[c+2] | ( data[c+3] << 8 ) );
+		document.getElementById( gtid + "_scale" ).value = v;
+		var v = unSysexSafeSignedShort( data[c+4] | ( data[c+5] << 8 ) );
+		document.getElementById( gtid + "_offset" ).value = v;
+		changeHidUsage( usage_id, i );
+		c += 8;
+	}
+	// keyboard mappings
+	for ( var i = 1; i < 33; ++i ) {
+		var gtid = "kbd_" + i;
+		document.getElementById( gtid + "_type" ).value = data[c+0];
+		document.getElementById( gtid + "_output" ).value = data[c+1];
+		document.getElementById( gtid + "_key" ).value = data[c+2];
+		var v = unSysexSafeShort( data[c+4] | ( data[c+5] << 8 ) );
+		document.getElementById( gtid + "_value0" ).value = v;
+		var v = unSysexSafeShort( data[c+6] | ( data[c+7] << 8 ) );
+		document.getElementById( gtid + "_value1" ).value = v;
+		c += 8;
+	}
+	// lfo resets
+	for ( var i = 1; i < 65; ++i ) {
+		document.getElementById( "lfotrig_type_" + i ).value = data[c+0] >> 4;
+		document.getElementById( "lfotrig_ch_" + i ).value = data[c+0] & 0xf;
+		document.getElementById( "lfotrig_cc_" + i ).value = data[c+1];
+		changeLfoReset( i );
+		c += 2;
+	}
+	// cv/midi
+	for ( var i = 0; i < 2; ++i ) {
+		var t = data[c+0];
+		document.getElementById( "cvm_en_" + i ).checked = ( t & ( 1<<0 ) ) != 0;
+		document.getElementById( "cvm_outI_" + i ).checked = ( t & ( 1<<1 ) ) != 0;
+		document.getElementById( "cvm_outA_" + i ).checked = ( t & ( 1<<2 ) ) != 0;
+		document.getElementById( "cvm_outC_" + i ).checked = ( t & ( 1<<3 ) ) != 0;
+		document.getElementById( "cvm_outD_" + i ).checked = ( t & ( 1<<4 ) ) != 0;
+		document.getElementById( "cvm_type_" + i ).value = data[c+1] >> 4;
+		document.getElementById( "cvm_ch_" + i ).value = ( data[c+1] & 0xf ) + 1;
+		document.getElementById( "cvm_cc_" + i ).value = data[c+2];
+		var v = unSysexSafeSignedShort( data[c+4] | ( data[c+5] << 8 ) );
+		document.getElementById( "cvm_0v_" + i ).value = v;
+		var v = unSysexSafeSignedShort( data[c+6] | ( data[c+7] << 8 ) );
+		document.getElementById( "cvm_5v_" + i ).value = v;
+		c += 8;
+	}
+	// globals
+	document.getElementById( "glb_tempo_min" ).value = data[c];		 c += 1;
+	document.getElementById( "glb_tempo_max" ).value = data[c];		 c += 1;
+	c += 2;
+
+	// skip to addendum
+	c = 4096;
+	for ( var i = 1; i < 17; ++i ) {
+		if ( data[c] ) {
+			document.getElementById( "euc_output_" + i ).value = -1;
+		}
+		c += 1;
+	}
+	for ( var i = 1; i < 17; ++i ) {
+		if ( data[c] ) {
+			document.getElementById( "euc_offoutput_" + i ).value = -1;
+		}
+		c += 1;
+	}
+}
+</script>
+
+<script>
+var midi, data;
+function onMIDISuccess(midiAccess) {
+	log( "midi access granted" );
+    status("OK");
+    midi = midiAccess;
+    midi.onstatechange = onStateChange;
+    onStateChange(null);
+}
+function onStateChange(e) {
+    var str = "";
+    var fh2 = -1;
+    var inputs = midi.inputs.values();
+    for ( var input = inputs.next(); input && !input.done; input = inputs.next() ) {
+	    str += "<option value='" + input.value.id + "'>" + input.value.name + "</option>";
+	    if ( input.value.name == "FH-2" ) {
+		    fh2 = input.value.id;
+	    }
+    }
+    document.getElementById( "midiinput" ).innerHTML = str
+    if ( fh2 != -1 ) {
+	    document.getElementById( "midiinput" ).value = fh2;
+    }
+    str = "";
+    fh2 = -1;
+    var outputs = midi.outputs.values();
+    for ( var output = outputs.next(); output && !output.done; output = outputs.next() ) {
+	    str += "<option value='" + output.value.id + "'>" + output.value.name + "</option>";
+	    if ( output.value.name == "FH-2" ) {
+		    fh2 = output.value.id;
+	    }
+    }
+    document.getElementById( "midioutput" ).innerHTML = str
+    if ( fh2 != -1 ) {
+	    document.getElementById( "midioutput" ).value = fh2;
+    }
+
+	changeInput();
+}
+function onMIDIFailure(e) {
+	log( "midi access failure" );
+    status("No access to MIDI devices or your browser doesn't support WebMIDI API.");
+}
+function changeInput() {
+    var inputs = midi.inputs.values();
+    if ( inputs.size == 0 ) {
+    	return;
+    }
+    for ( var input = inputs.next(); input && !input.done; input = inputs.next() ) {
+    	input.value.onmidimessage = "";
+    }
+	var input = midi.inputs.get( document.getElementById( "midiinput" ).value );
+	input.onmidimessage = onMIDIMessage;
+}
+function onMIDIMessage(message) {
+    data = message.data;
+    var header = [ 240, 0, 33, 39, 47 ];
+    for ( var i=0; i<5; ++i ) {
+    	if ( header[i] != data[i] ) {
+    		return;
+    	}
+    }
+	var dd = log( "received sysex (" + data.length + " bytes)" );
+	dumpSysex( data, "rxSysex", dd+"\n" );
+	if ( data[5] == 0x32 ) {
+		// version string
+	    var str = String.fromCharCode.apply( null, data.slice( 6, -1 ) );
+		document.getElementById( "rxSysex" ).value += ( "\n-----\n" + str );
+	}
+	else if ( data[5] == 0x10 ) {
+		// config dump
+		parseConfigDump( data.slice( 8, -1 ) );
+	}
+}
+function send() {
+	var str = makeSysEx();
+	var arr = new Uint8Array( str.length );
+	for ( var i=0; i<str.length; ++i ) {
+		arr[i] = str.charCodeAt( i );
+	}
+	var output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	output.send( arr );
+	var dd = log( "sent sysex (" + str.length + " bytes)" );
+	dumpSysex( arr, "txSysex", dd+"\n" );
+}
+function sendMsg() {
+	var str = makeMsgSysEx();
+	var arr = new Uint8Array( str.length );
+	for ( var i=0; i<str.length; ++i ) {
+		arr[i] = str.charCodeAt( i );
+	}
+	var output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	output.send( arr );
+	var dd = log( "sent sysex (" + str.length + " bytes)" );
+	dumpSysex( arr, "txSysex", dd+"\n" );
+}
+function request() {
+	var output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	var arr = [ 0xF0, 0x00, 0x21, 0x27, 0x2F, 0x21, 0xF7 ];
+	output.send( arr );
+	var dd = log( "sent config dump request to FH-2" );
+	dumpSysex( arr, "txSysex", dd+"\n" );
+}
+function reqVersion() {
+	var output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	var arr = [ 0xF0, 0x00, 0x21, 0x27, 0x2F, 0x22, 0xF7 ];
+	output.send( arr );
+	var dd = log( "sent version request to FH-2" );
+	dumpSysex( arr, "txSysex", dd+"\n" );
+}
+if ( navigator.requestMIDIAccess ) {
+    navigator.requestMIDIAccess ( {
+        sysex: true
+    } ).then(onMIDISuccess, onMIDIFailure);
+} else {
+    status("No MIDI support in your browser.");
+}
+
+</script>
+
+</body>
