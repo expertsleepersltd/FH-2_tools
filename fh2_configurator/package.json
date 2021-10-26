@@ -1,7 +1,7 @@
 {
   "name": "fh2_configurator",
   "productName": "FH-2 Configurator",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "description": "Configuration tool for the Expert Sleepers FH-2",
   "main": "src/index.js",
   "scripts": {

@@ -33,12 +33,21 @@ td.tc_a {
 	background-color: #e0e0e0;
 	font-size: 80%;
 }
+div.tc_c {
+	font-size: 80%;
+}
 tr.a {
 	background-color: #e0e0e0;
 }
 th {
 	background-color: #c0c0c0;
 	font-size: 80%;
+}
+div.rth {
+	-webkit-writing-mode: vertical-rl;
+	transform: rotate(200deg);
+	padding-left: 5px;
+	padding-right: 5px;
 }
 textarea {
     font-family: 'PT Mono', monospace;
@@ -148,6 +157,8 @@ function makeSysExMcv( data, c, m ) {
 	data[c] = document.getElementById( "mcv_benddown_" + m ).value;	c += 1;
 	// pitch bend output
 	data[c] = document.getElementById( "mcv_PB_" + m ).value;	c += 1;
+	// random output
+	data[c] = document.getElementById( "mcv_VRND_" + m ).checked;	c += 1;
 
 	return data;
 }
@@ -318,9 +329,10 @@ function makeSysExClocks( data, c, i ) {
 function makeSysExTriggers( data, c, i ) {
 	var clkid = "trg_" + i;
 	var env = document.getElementById( clkid + "_env" ).value - 1;
+	let note = document.getElementById( clkid + "_note" ).value;
 	data[c+0] = document.getElementById( clkid + "_type" ).value | ( ( env >> 1 ) << 4 );
-	data[c+1] = ( document.getElementById( clkid + "_ch" ).value - 1 ) | ( ( env & 1 ) << 4 );
-	data[c+2] = document.getElementById( clkid + "_note" ).value;
+	data[c+1] = ( document.getElementById( clkid + "_ch" ).value - 1 ) | ( ( env & 1 ) << 4 ) | ( ( note < 0 ) << 5 );
+	data[c+2] = note < 0 ? 0 : note;
 	data[c+3] = document.getElementById( clkid + "_output" ).value;
 	return data;
 }
@@ -492,6 +504,36 @@ function makeSysEx() {
 	arr[c] = document.getElementById( "glb_tempo_min" ).value;		 c += 1;
 	arr[c] = document.getElementById( "glb_tempo_max" ).value;		 c += 1;
 	c += 2;
+	// sequencers
+	for ( let i=0; i<4; ++i ) {
+		arr[c] = document.getElementById( "seqn_" + i + "_ch" ).value - 1;	c += 1;
+		let outs = 0;
+		if ( document.getElementById( "seqn_" + i + "_int" ).checked )
+			outs |= (1<<0);
+		if ( document.getElementById( "seqn_" + i + "_c" ).checked )
+			outs |= (1<<1);
+		if ( document.getElementById( "seqn_" + i + "_a" ).checked )
+			outs |= (1<<2);
+		if ( document.getElementById( "seqn_" + i + "_d" ).checked )
+			outs |= (1<<3);
+    	arr[c] = outs;														c += 1;
+		arr[c] = document.getElementById( "seqn_" + i + "_clk" ).value;		c += 1;
+    	c += 1;
+	}
+	for ( let i=0; i<1; ++i ) {
+		arr[c] = document.getElementById( "seqd_" + i + "_ch" ).value - 1;	c += 1;
+		let outs = 0;
+		if ( document.getElementById( "seqd_" + i + "_int" ).checked )
+			outs |= (1<<0);
+		if ( document.getElementById( "seqd_" + i + "_c" ).checked )
+			outs |= (1<<1);
+		if ( document.getElementById( "seqd_" + i + "_a" ).checked )
+			outs |= (1<<2);
+		if ( document.getElementById( "seqd_" + i + "_d" ).checked )
+			outs |= (1<<3);
+    	arr[c] = outs;														c += 1;
+    	c += 2;
+	}
 
 	// pad to 4096 bytes
 	while ( ( c - len ) < 4096 ) {
@@ -547,7 +589,7 @@ function dumpSysex( data, id, prefix ) {
 var arpControls = [ "M", "R", "G", "L", "T", "P", "S", "E" ];
 var arpControlsUI = [ "P", "E" ];
 var arpControlsUI2 = [ "M", "R", "G", "L", "T", "S" ];
-var mcvMappable2Controls = [ "A", "D", "S", "R", "N", "P", "V" ];
+var mcvMappable2Controls = [ "A", "D", "S", "R", "N", "P", "V", "RND" ];
 var mcvCommands = [ "A", "R", "T", "N", "P", "K", "O" ];
 var eucControls = [ "P", "S", "R", "T", "G", "A", "E" ];
 var menus = [ 'C', 'D', 'E' ];
@@ -771,7 +813,7 @@ At the time of writing this will work only in Google's <a href="http://www.googl
 </div>
 <div class="small" id="status"></div>
 <div class="small">
-This version is for FH-2 firmware v1.14 and above.
+This version is for FH-2 firmware v1.15 and above.
 </div>
 <p>
 
@@ -803,6 +845,8 @@ This version is for FH-2 firmware v1.14 and above.
 <input type='checkbox' id='trig_lbl' onclick='showHide("trg_table",this.checked)' accesskey='t'>Show Triggers</input>
 <label class = 'hidden' for='euc_lbl'>Show Euclidean Patterns</label>
 <input type='checkbox' id='euc_lbl' onclick='showHide("euc_table",this.checked)' accesskey='r'>Show Euclidean Patterns</input>
+<label class = 'hidden' for='euc_lbl'>Show Sequencers</label>
+<input type='checkbox' id='euc_lbl' onclick='showHide("seq_table",this.checked)' accesskey='s'>Show Sequencers</input>
 <br>
 <label class="hidden" for="showfh2outputs">Show FH-2 Output Configurator</label>
 <input id="showfh2outputs" type='checkbox' onclick='showHide("outs0_table",this.checked)' checked=true  accesskey='w'>Show FH-2 Output Configurator</input>
@@ -956,21 +1000,21 @@ document.getElementById( "glb_triglen" ).value = 50;
 
 <table id="mcv_table"><caption class="hidden">MIDI/CV Converters</caption>
 <tr>
-<th></th><th>Enable</th><th>MIDI<br>Channel</th><th colspan=2>Note range</th><th>Type</th>
+<th></th><th><div class='rth'>Enable</div></th><th>MIDI<br>Channel</th><th colspan=2>Note range</th><th>Type</th>
 <th>Base<br>Output</th><th>Base<br>Gate</th>
-<th>CV</th><th>Gate</th><th>Velocity<br>Gate</th><th>Velocity</th><th>Release<br>Velocity</th><th>Trigger</th><th>Envelope</th><th>Aftertouch</th><th>Y</th>
-<th>Gate</th><th>Aftertouch</th><th>Bend</th>
-<th>Gated<br>Aftertouch</th>
+<th><div class='rth'>CV</div></th><th><div class='rth'>Gate</div></th><th><div class='rth'>Velocity<br>Gate</div></th><th><div class='rth'>Velocity</div></th><th><div class='rth'>Release<br>Velocity</div></th><th><div class='rth'>Trigger</div></th><th><div class='rth'>Envelope</div></th><th><div class='rth'>Aftertouch</div></th><th><div class='rth'>Random</div></th><th><div class='rth'>Y</div></th>
+<th><div class='rth'>Gate</div></th><th><div class='rth'>Aftertouch</div></th><th><div class='rth'>Bend</div></th>
+<th><div class='rth'>Gated<br>Aftertouch</div></th>
 <th>Sustain</th>
 <th>Voice<br>allocation</th><th>Prevent<br>stealing</th><th>Voices</th><th>Stride</th><th>Last<br>channel</th>
 <th colspan=2>Bend<br>range</th>
-<th>Mono<br>retrigger</th>
-<th>Interrupt<br>gate</th>
-<th>Env<br>zero</th>
+<th><div class='rth'>Mono<br>retrigger</div></th>
+<th><div class='rth'>Interrupt<br>gate</div></th>
+<th><div class='rth'>Env<br>zero</div></th>
 </tr>
 <tr>
 <td colspan=8></td>
-<th class="tc" colspan=9>Per voice outputs</th>
+<th class="tc" colspan=10>Per voice outputs</th>
 <th class="tc" colspan=3>Paraphonic outputs</th>
 <td></td>
 <td></td>
@@ -980,7 +1024,7 @@ document.getElementById( "glb_triglen" ).value = 50;
 <td></td>
 <td></td>
 </tr>
-<tr class="a"><td colspan="8"></td><td colspan="8"></td><td class='tc'>CC</td><td colspan="2"></td><td colspan="12"></td>
+<tr class="a"><td colspan="8"></td><td colspan="9"></td><td class='tc'>CC</td><td colspan="3"></td><td colspan="12"></td>
 </tr>
 <script>
 	for ( i = 1; i < 17; ++i ) {
@@ -1022,10 +1066,10 @@ document.getElementById( "glb_triglen" ).value = 50;
 		writeBaseGateChannelSelector( id );
 		document.write( "</td>" );
 
-		var c = [ "C", "G", "VG", "V", "R", "T", "E", "P" ];
+		var c = [ "C", "G", "VG", "V", "R", "T", "E", "P", "RND" ];
 		var k;
 
-		for ( k=0; k<8; ++k ) {
+		for ( k=0; k<9; ++k ) {
 			var param_label;
 
 			if (k == 0) 
@@ -1059,6 +1103,10 @@ document.getElementById( "glb_triglen" ).value = 50;
 		else if (k == 7)
 		{
 			param_label = "MPE Aftertouch";
+		}
+		else if (k == 8)
+		{
+			param_label = "Random";
 		}
 		else
 		{
@@ -1190,18 +1238,20 @@ document.getElementById( "glb_triglen" ).value = 50;
 <th></th>
 <th>Portamento</th>
 <th>Transpose</th>
-<th colspan=13>Envelopes</th>
+<th colspan=7>Envelopes</th>
+<th>Random</th>
 </tr>
 <tr>
 <th></th>
 <th></th>
 <th></th>
 <th>Attack</th><th>Decay</th><th>Sustain</th><th>Release</th><th>Range</th><th>Depth</th><th>Velocity Depth</th>
+<th></th>
 </tr>
 </thead>
 <tr>
 <td></td>
-<td class='tc' colspan=9>Preset Items - Channel/CC</td>
+<td class='tc' colspan=10>Preset Items - Channel/CC</td>
 </tr>
 <script>
 	for ( i = 1; i < 17; ++i ) {
@@ -1264,6 +1314,10 @@ param_label = "env. depth";
 else if (j == 6)
 {
 param_label = "env. velocity depth";
+}
+else if (j == 7)
+{
+param_label = "random depth";
 }
 else
 {
@@ -1476,7 +1530,7 @@ param_label = "error: unknown parameter";
 		document.write( "</td>" );
 		id = clkid + "_note";
 		document.write( "<td><label class='hidden' for='" + id + "'>MIDI note (Trigger " + i + ")</label>");
-		writeMIDICCSelector( id, false );
+		writeMIDICCSelector( id, true );
 		document.write( "</td>" );
 		id = clkid + "_env";
 		document.write( "<td><label class='hidden' for='" + id + "'>Envelope settings (Trigger " + i + ")</label>");
@@ -1559,11 +1613,58 @@ param_label = "error: unknown parameter";
 </script>
 </table>
 
+<table id="seq_table"><caption class="hidden">Sequencers</caption>
+<tr>
+<th colspan=7>Sequencers</th>
+</tr>
+<tr><td></td><th>MIDI channel</th><th>Internal</th><th>USB C</th><th>USB A</th><th>DIN</th><th>Clock source</th></tr>
+<tr><th>Note sequencers</th><th colspan=5></th><th>(for rate 0)</th></tr>
+<script>
+	for ( let i=0; i<4; ++i ) {
+		let cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + (i+1) + "</td><td>" );
+		let chid = "seqn_" + i + "_ch";
+    	writeMIDIChannelSelector( chid, false, null );
+		document.write( "</td>" );
+		document.write( "<td><input type='checkbox' id='seqn_" + i + "_int'></td>" );
+		document.write( "<td><input type='checkbox' id='seqn_" + i + "_c'></td>" );
+		document.write( "<td><input type='checkbox' id='seqn_" + i + "_a'></td>" );
+		document.write( "<td><input type='checkbox' id='seqn_" + i + "_d'></td>" );
+		let id = "seqn_" + i + "_clk";
+		document.write( "<td><label class='hidden' for='" + id + "'>Sequencer " + (i + 1) + " external clock source</label>" );
+		document.write( "<select id='" + id + "'>" );
+		document.write( "<option value=0>External</option>" );
+		for ( let j=1; j<=16; ++j ) {
+			document.write( "<option value=" + j + ">Euclidean " + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+		document.write( "</tr>" );
+	}
+</script>
+<tr><th>Drum sequencers</th><th colspan=5></th></tr>
+<script>
+	for ( let i=0; i<1; ++i ) {
+		let cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + (i+1) + "</td><td>" );
+		let chid = "seqd_" + i + "_ch";
+    	writeMIDIChannelSelector( chid, false, null );
+		document.write( "</td>" );
+		document.write( "<td><input type='checkbox' id='seqd_" + i + "_int'></td>" );
+		document.write( "<td><input type='checkbox' id='seqd_" + i + "_c'></td>" );
+		document.write( "<td><input type='checkbox' id='seqd_" + i + "_a'></td>" );
+		document.write( "<td><input type='checkbox' id='seqd_" + i + "_d'></td>" );
+		document.write( "</tr>" );
+	}
+</script>
+</table>
+
 <script>
 	function changeLfoReset( out ) {
 		var t = document.getElementById( "lfotrig_type_" + out ).value;
-    	document.getElementById( "lfotrig_ch_" + out ).style.display = ( t > 0 ) ? "inline" : "none";
-    	document.getElementById( "lfotrig_cc_" + out ).style.display = ( t > 0 && t < 3 ) ? "inline" : "none";
+    	document.getElementById( "lfotrig_ch_" + out ).style.display = ( t > 0 && t < 6 ) ? "inline" : "none";
+    	document.getElementById( "lfotrig_cc_" + out ).style.display = ( ( t > 0 && t < 3 ) || ( t >= 6 && t <= 7  ) ) ? "inline" : "none";
+    	document.getElementById( "lfotrig_ch_" + out + "_lab" ).innerHTML = ( t > 0 && t < 3 ) ? "Channel" : ( t >= 3 && t <= 5 ) ? "MIDI/CV" : "";
+    	document.getElementById( "lfotrig_cc_" + out + "_lab" ).innerHTML = ( t == 1 ) ? "CC" : ( t == 2 ) ? "Note" : ( t == 6 ) ? "Clock" : ( t == 7 ) ? "Euclidean" : "";
 	}
 
 	var ac = [ "DC", "LFO", "CLK", "CLKM", "MLT", "SIN", "SQR", "PW", "TRI", "SAW", "RND", "NSE", "PHS", "FAD", "SMO" ];
@@ -1602,7 +1703,7 @@ param_label = "error: unknown parameter";
 		for ( j=0; j<ac.length-2; ++j ) {
 			document.write( "<td class='tc'>Channel/CC</td>" );
 		}
-		document.write( "<td class='tc'>Type</td><td class='tc'>Channel or MCV</td><td class='tc'>CC or Note</td>" );
+		document.write( "<td class='tc'>Type</td><td class='tc'>Set 1</td><td class='tc'>Set 2</td>" );
 		document.write( "<td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td>" );
 		document.write( "<th>Low</th><th>High</th>" );
 		document.write( "</tr>" );
@@ -1696,9 +1797,10 @@ param_label = "smoothing";
 					document.write( "<td><label class='hidden' for='" + id + "'>Reset type (Output " + (i + 1) + ")</label>" );
 					document.write( "<select id='" + id + "' onchange='changeLfoReset(\"" + (out+1) + "\")'>" );
 					document.write( "<option value=0>Off</option><option value=1>CC</option><option value=2>Note</option><option value=3>Any note</option><option value=4>Paraphonic</option><option value=5>Poly voice</option>" );
+					document.write( "<option value=6>Clock</option><option value=7>Euclidean</option>" );
 					document.write( "</select></td>" );
 					var id = "lfotrig_ch_" + (out+1);
-					document.write( "<td><label class='hidden' for='" + id + "'>Reset Channel or MCV (Output " + (i + 1) + ")</label>" );
+					document.write( "<td><div class='tc_c' id='" + id + "_lab'></div><label class='hidden' for='" + id + "'>Reset Channel or MCV (Output " + (i + 1) + ")</label>" );
 					document.write( "<select id='" + id + "'>" );
 					var k;
 					for ( k=1; k<=16; ++k ) {
@@ -1706,7 +1808,7 @@ param_label = "smoothing";
 					}
 					document.write( "</select></td>" );
 					var ccid = "lfotrig_cc_" + (out+1);
-					document.write( "<td><label class='hidden' for='" + ccid + "'>Reset CC or Note (Output " + (i + 1) + ")</label>" );
+					document.write( "<td><div class='tc_c' id='" + ccid + "_lab'></div><label class='hidden' for='" + ccid + "'>Reset CC or Note (Output " + (i + 1) + ")</label>" );
 					writeMIDICCSelector( ccid, false );
 					document.write( "</td>" );
 				}
@@ -1883,6 +1985,7 @@ showHide( "arp_table", false );
 showHide( "clk_table", false );
 showHide( "trg_table", false );
 showHide( "euc_table", false );
+showHide( "seq_table", false );
 showHide( "hid_table", false );
 showHide( "kbd_table", false );
 showHide( "cvm_table", false );
@@ -1974,6 +2077,8 @@ function parseMcv( data, c, m ) {
 	document.getElementById( "mcv_benddown_" + m ).value = data[c];	c += 1;
 	// pitch bend output
 	document.getElementById( "mcv_PB_" + m ).value = data[c];	c += 1;
+	// random output
+	document.getElementById( "mcv_VRND_" + m ).checked = data[c];	c += 1;
 
 	changeType( m );
 }
@@ -2194,9 +2299,10 @@ function parseConfigDump( data ) {
 	// triggers
 	for ( var i = 1; i <= 64; ++i ) {
 		var clkid = "trg_" + i;
+		let anyNote = ( ( data[c+1] >> 5 ) & 1 );
 		document.getElementById( clkid + "_type" ).value = data[c+0] & 0xf;
 		document.getElementById( clkid + "_ch" ).value = ( data[c+1] & 0xf ) + 1;
-		document.getElementById( clkid + "_note" ).value = data[c+2];
+		document.getElementById( clkid + "_note" ).value = anyNote ? -1 : data[c+2];
 		document.getElementById( clkid + "_output" ).value = data[c+3];
 		document.getElementById( clkid + "_env" ).value = ( ( ( data[c+0] >> 4 ) << 1 ) | ( ( data[c+1] >> 4 ) & 1 ) ) + 1;
 		changeTrigger( clkid );
@@ -2275,6 +2381,26 @@ function parseConfigDump( data ) {
 	document.getElementById( "glb_tempo_min" ).value = data[c];		 c += 1;
 	document.getElementById( "glb_tempo_max" ).value = data[c];		 c += 1;
 	c += 2;
+	// sequencers
+	for ( let i=0; i<4; ++i ) {
+		document.getElementById( "seqn_" + i + "_ch" ).value = data[c]+1;	c += 1;
+		let outs = data[c];													c += 1;
+		document.getElementById( "seqn_" + i + "_int" ).checked = ( outs >> 0 ) & 1;
+		document.getElementById( "seqn_" + i + "_c" ).checked = ( outs >> 1 ) & 1;
+		document.getElementById( "seqn_" + i + "_a" ).checked = ( outs >> 2 ) & 1;
+		document.getElementById( "seqn_" + i + "_d" ).checked = ( outs >> 3 ) & 1;
+		document.getElementById( "seqn_" + i + "_clk" ).value = data[c];	c += 1;
+		c += 1;
+	}
+	for ( let i=0; i<1; ++i ) {
+		document.getElementById( "seqd_" + i + "_ch" ).value = data[c]+1;	c += 1;
+		let outs = data[c];													c += 1;
+		document.getElementById( "seqd_" + i + "_int" ).checked = ( outs >> 0 ) & 1;
+		document.getElementById( "seqd_" + i + "_c" ).checked = ( outs >> 1 ) & 1;
+		document.getElementById( "seqd_" + i + "_a" ).checked = ( outs >> 2 ) & 1;
+		document.getElementById( "seqd_" + i + "_d" ).checked = ( outs >> 3 ) & 1;
+		c += 2;
+	}
 
 	// skip to addendum
 	c = 4096;
