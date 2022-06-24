@@ -75,6 +75,12 @@ p {
 	margin-block-start: 0em;
 	margin-block-end: 0em;
 }
+div.relative_cb {
+	display:inline;
+}
+input.relative_cb {
+	margin:0px;
+}
 </style>
 
 <script>
@@ -169,12 +175,13 @@ function makeSysExMappings( data, c ) {
 		for ( i = 0; i < 64; ++i ) {
 			var ch = document.getElementById( "out_" + ac[j] + "_ch_" + i ).value - 1;
 			var cc = document.getElementById( "out_" + ac[j] + "_cc_" + i ).value;
+			let re = document.getElementById( "out_" + ac[j] + "_cc_" + i + "_rel" ).checked ? 32 : 0;
 			if ( ch < 0 || cc < 0 ) {
 				continue;
 			}
 			data[c+0] = 0x30 | ch;
 			data[c+1] = cc;
-			data[c+2] = acc[j];
+			data[c+2] = acc[j] + re;
 			data[c+3] = i + aco[j];
 			c += 4;
 			
@@ -190,12 +197,13 @@ function makeSysExMappings( data, c ) {
 		for ( i = 0; i < arpControls.length; ++i ) {
 			var ch = document.getElementById( id + arpControls[i] + "_ch" ).value - 1;
 			var cc = document.getElementById( id + arpControls[i] + "_cc" ).value;
+			let re = document.getElementById( id + arpControls[i] + "_cc" + "_rel" ).checked ? 32 : 0;
 			if ( ch < 0 || cc < 0 ) {
 				continue;
 			}
 			data[c+0] = 0x30 | ch;
 			data[c+1] = cc;
-			data[c+2] = 9;
+			data[c+2] = 9 + re;
 			data[c+3] = (j-1)*8 + i;
 			c += 4;
 			
@@ -208,12 +216,13 @@ function makeSysExMappings( data, c ) {
 		for ( i = 0; i < mcvCommands.length; ++i ) {
 			var ch = document.getElementById( id + mcvCommands[i] + "_ch" ).value - 1;
 			var cc = document.getElementById( id + mcvCommands[i] + "_cc" ).value;
+			let re = document.getElementById( id + mcvCommands[i] + "_cc" + "_rel" ).checked ? 32 : 0;
 			if ( ch < 0 || cc < 0 ) {
 				continue;
 			}
 			data[c+0] = 0x30 | ch;
 			data[c+1] = cc;
-			data[c+2] = 11;
+			data[c+2] = 11 + re;
 			data[c+3] = (j-1)*8 + i;
 			c += 4;
 			
@@ -226,12 +235,13 @@ function makeSysExMappings( data, c ) {
 		for ( i = 0; i < mcvMappable2Controls.length; ++i ) {
 			var ch = document.getElementById( id + mcvMappable2Controls[i] + "_ch" ).value - 1;
 			var cc = document.getElementById( id + mcvMappable2Controls[i] + "_cc" ).value;
+			let re = document.getElementById( id + mcvMappable2Controls[i] + "_cc" + "_rel" ).checked ? 32 : 0;
 			if ( ch < 0 || cc < 0 ) {
 				continue;
 			}
 			data[c+0] = 0x30 | ch;
 			data[c+1] = cc;
-			data[c+2] = 12;
+			data[c+2] = 12 + re;
 			data[c+3] = (j-1)*8 + i;
 			c += 4;
 			
@@ -247,12 +257,13 @@ function makeSysExMappings( data, c ) {
 		for ( i = 0; i < eucControls.length; ++i ) {
 			var ch = document.getElementById( id + eucControls[i] + "_ch" ).value - 1;
 			var cc = document.getElementById( id + eucControls[i] + "_cc" ).value;
+			let re = document.getElementById( id + eucControls[i] + "_cc" + "_rel" ).checked ? 32 : 0;
 			if ( ch < 0 || cc < 0 ) {
 				continue;
 			}
 			data[c+0] = 0x30 | ch;
 			data[c+1] = cc;
-			data[c+2] = 10;
+			data[c+2] = 10 + re;
 			data[c+3] = (j-1)*8 + i;
 			c += 4;
 		
@@ -263,12 +274,14 @@ function makeSysExMappings( data, c ) {
 		}
 	}
 
+		{
 			var ch = document.getElementById( "glb_tempo_ch" ).value - 1;
 			var cc = document.getElementById( "glb_tempo_cc" ).value;
+			let re = document.getElementById( "glb_tempo_cc" + "_rel" ).checked ? 32 : 0;
 			if ( ch >= 0 && cc >= 0 ) {
 				data[c+0] = 0x30 | ch;
 				data[c+1] = cc;
-				data[c+2] = 69;
+				data[c+2] = 69 + re;
 				data[c+3] = 0;
 				c += 4;
 		
@@ -277,13 +290,15 @@ function makeSysExMappings( data, c ) {
 					return data;
 				}
 			}
-
+		}
+		{
 			var ch = document.getElementById( "dispmode_ch" ).value - 1;
 			var cc = document.getElementById( "dispmode_cc" ).value;
+			let re = document.getElementById( "dispmode_cc" + "_rel" ).checked ? 32 : 0;
 			if ( ch >= 0 && cc >= 0 ) {
 				data[c+0] = 0x30 | ch;
 				data[c+1] = cc;
-				data[c+2] = 71;
+				data[c+2] = 71 + re;
 				data[c+3] = 0;
 				c += 4;
 		
@@ -292,12 +307,15 @@ function makeSysExMappings( data, c ) {
 					return data;
 				}
 			}
+		}
+		{
 			var ch = document.getElementById( "dispitem_ch" ).value - 1;
 			var cc = document.getElementById( "dispitem_cc" ).value;
+			let re = document.getElementById( "dispitem_cc" + "_rel" ).checked ? 32 : 0;
 			if ( ch >= 0 && cc >= 0 ) {
 				data[c+0] = 0x30 | ch;
 				data[c+1] = cc;
-				data[c+2] = 72;
+				data[c+2] = 72 + re;
 				data[c+3] = 0;
 				c += 4;
 		
@@ -306,6 +324,41 @@ function makeSysExMappings( data, c ) {
 					return data;
 				}
 			}
+		}
+		{
+			var ch = document.getElementById( "glb_swing_type_ch" ).value - 1;
+			var cc = document.getElementById( "glb_swing_type_cc" ).value;
+			let re = document.getElementById( "glb_swing_type_cc" + "_rel" ).checked ? 32 : 0;
+			if ( ch >= 0 && cc >= 0 ) {
+				data[c+0] = 0x30 | ch;
+				data[c+1] = cc;
+				data[c+2] = 74 + re;
+				data[c+3] = 0;
+				c += 4;
+		
+				map += 1;
+				if ( map >= 384 ) {
+					return data;
+				}
+			}
+		}
+		{
+			var ch = document.getElementById( "glb_swing_amount_ch" ).value - 1;
+			var cc = document.getElementById( "glb_swing_amount_cc" ).value;
+			let re = document.getElementById( "glb_swing_amount_cc" + "_rel" ).checked ? 32 : 0;
+			if ( ch >= 0 && cc >= 0 ) {
+				data[c+0] = 0x30 | ch;
+				data[c+1] = cc;
+				data[c+2] = 75 + re;
+				data[c+3] = 0;
+				c += 4;
+		
+				map += 1;
+				if ( map >= 384 ) {
+					return data;
+				}
+			}
+		}
 	
 	log( map + " mapping(s)" );
 	
@@ -770,6 +823,7 @@ function changeMIDIChannel( id, ccid ) {
 	if ( ccid != null ) {
 		var show = ( document.getElementById( id ).value > 0 );
 		document.getElementById( ccid ).style.display = show ? "inline" : "none";
+		document.getElementById( ccid + "_rel" ).style.display = show ? "inline" : "none";
 	}
 }
 
@@ -794,8 +848,10 @@ function writeMIDICCSelector( id, includeNone=true, hide=true ) {
 		document.write( "<option value='"+j+"'>" + j + "</option>" );
 	}
 	document.write( "</select>" );
+	document.write( "<div title='Relative' class='relative_cb'><input type='checkbox' class='relative_cb' id='" + id + "_rel' /></div>" );
 	if ( hide ) {
 		document.getElementById( id ).style.display = "none";
+		document.getElementById( id + '_rel' ).style.display = "none";
 	}
 }
 function showHide( id, show ) {
@@ -813,7 +869,7 @@ At the time of writing this will work only in Google's <a href="http://www.googl
 </div>
 <div class="small" id="status"></div>
 <div class="small">
-This version is for FH-2 firmware v1.15 and above.
+This version is for FH-2 firmware v1.17 and above.
 </div>
 <p>
 
@@ -846,7 +902,7 @@ This version is for FH-2 firmware v1.15 and above.
 <label class = 'hidden' for='euc_lbl'>Show Euclidean Patterns</label>
 <input type='checkbox' id='euc_lbl' onclick='showHide("euc_table",this.checked)' accesskey='r'>Show Euclidean Patterns</input>
 <label class = 'hidden' for='euc_lbl'>Show Sequencers</label>
-<input type='checkbox' id='euc_lbl' onclick='showHide("seq_table",this.checked)' accesskey='s'>Show Sequencers</input>
+<input type='checkbox' id='euc_lbl' onclick='showHide("seq_table",this.checked)' accesskey='q'>Show Sequencers</input>
 <br>
 <label class="hidden" for="showfh2outputs">Show FH-2 Output Configurator</label>
 <input id="showfh2outputs" type='checkbox' onclick='showHide("outs0_table",this.checked)' checked=true  accesskey='w'>Show FH-2 Output Configurator</input>
@@ -886,6 +942,7 @@ This version is for FH-2 firmware v1.15 and above.
 <th colspan=3>Tap Tempo</th>
 <th colspan=3>Start/Stop</th>
 <th colspan=3>Internal tempo</th>
+<th colspan=2>Swing type/amount</th>
 <th colspan=2>Display mode/item</th>
 </tr>
 <tr class="b">
@@ -893,6 +950,7 @@ This version is for FH-2 firmware v1.15 and above.
 <th>Type</th><th>Channel</th><th>Note or CC</th>
 <th>Type</th><th>Channel</th><th>Note or CC</th>
 <th>Channel/CC</th><th>Min</th><th>Max</th>
+<th>Channel/CC</th><th>Channel/CC</th>
 <th>Channel/CC</th><th>Channel/CC</th>
 </tr>
 </thead>
@@ -977,6 +1035,17 @@ This version is for FH-2 firmware v1.15 and above.
 			document.write( "<option value='"+j+"'>" + (j+128) + "</option>" );
 		}
 </script></select></td>
+
+<td><label class="hidden" for="glb_swing_type_ch">Swing type MIDI channel</label><label class="hidden" for="glb_swing_type_cc">Swing type MIDI CC</label><script>
+	var ccid = "glb_swing_type_cc";
+	writeMIDIChannelSelector( "glb_swing_type_ch", true, ccid );
+	writeMIDICCSelector( ccid );
+</script></td>
+<td><label class="hidden" for="glb_swing_amount_ch">Swing amount MIDI channel</label><label class="hidden" for="glb_swing_amount_cc">Swing amount MIDI CC</label><script>
+	var ccid = "glb_swing_amount_cc";
+	writeMIDIChannelSelector( "glb_swing_amount_ch", true, ccid );
+	writeMIDICCSelector( ccid );
+</script></td>
 
 <td><label class="hidden" for="dispmode_ch">Display Mode MIDI Channel</label><label class="hidden" for="dispmode_cc">Display Mode MIDI CC</label><script>
 	var ccid = "dispmode_cc";
@@ -2178,6 +2247,14 @@ function parseConfigDump( data ) {
 			var ta = document.getElementById( "dispitem_cc" );
 			ta.value = -1;
 			ta.style.display = "none";
+			document.getElementById( "glb_swing_type_ch" ).value = -1;
+			var ta = document.getElementById( "glb_swing_type_cc" );
+			ta.value = -1;
+			ta.style.display = "none";
+			document.getElementById( "glb_swing_amount_ch" ).value = -1;
+			var ta = document.getElementById( "glb_swing_amount_cc" );
+			ta.value = -1;
+			ta.style.display = "none";
 	for ( var i = 0; i < 384; ++i ) {
 		var ch = data[c+0];
 		var cc = data[c+1];
@@ -2185,6 +2262,9 @@ function parseConfigDump( data ) {
 		var t1 = data[c+3];
 		if ( ( ch >> 4 ) == 3 ) {
 			ch = ch & 0xf;
+			let relative = ( t0 & 32 ) != 0;
+			t0 = t0 & ~32;
+			let ccid = "";
 			if ( t0 <= 8 ) {
 				var aci = acMapLow[t0];
 				if ( t1 >= 64 ) {
@@ -2194,7 +2274,7 @@ function parseConfigDump( data ) {
 				if ( aci >= 0 ) {
 					if ( t1 >= 0 && t1 < 64 ) {
 						var id = "out_" + ac[aci] + "_ch_" + t1;
-						var ccid = "out_" + ac[aci] + "_cc_" + t1;
+						ccid = "out_" + ac[aci] + "_cc_" + t1;
 						document.getElementById( id ).value = ch+1;
 						document.getElementById( ccid ).value = cc;
 						changeMIDIChannel( id, ccid );
@@ -2207,7 +2287,7 @@ function parseConfigDump( data ) {
 					var k = t1 & 7;
 					if ( k >= 0 && k < arpControls.length ) {
 						var id = "arpeg" + j + "_";
-						var ccid = id + arpControls[k] + "_cc";
+						ccid = id + arpControls[k] + "_cc";
 						id = id + arpControls[k] + "_ch";
 						document.getElementById( id ).value = ch+1;
 						document.getElementById( ccid ).value = cc;
@@ -2219,7 +2299,7 @@ function parseConfigDump( data ) {
 					var k = t1 & 7;
 					if ( k >= 0 && k < eucControls.length ) {
 						var id = "euc_" + j + "_";
-						var ccid = id + eucControls[k] + "_cc";
+						ccid = id + eucControls[k] + "_cc";
 						id = id + eucControls[k] + "_ch";
 						document.getElementById( id ).value = ch+1;
 						document.getElementById( ccid ).value = cc;
@@ -2231,7 +2311,7 @@ function parseConfigDump( data ) {
 					var k = t1 & 7;
 					if ( k >= 0 && k < mcvCommands.length ) {
 						var id = "mcvcom" + j + "_";
-						var ccid = id + mcvCommands[k] + "_cc";
+						ccid = id + mcvCommands[k] + "_cc";
 						id = id + mcvCommands[k] + "_ch";
 						document.getElementById( id ).value = ch+1;
 						document.getElementById( ccid ).value = cc;
@@ -2243,7 +2323,7 @@ function parseConfigDump( data ) {
 					var k = t1 & 7;
 					if ( k >= 0 && k < mcvMappable2Controls.length ) {
 						var id = "mcvm2_" + j + "_";
-						var ccid = id + mcvMappable2Controls[k] + "_cc";
+						ccid = id + mcvMappable2Controls[k] + "_cc";
 						id = id + mcvMappable2Controls[k] + "_ch";
 						document.getElementById( id ).value = ch+1;
 						document.getElementById( ccid ).value = cc;
@@ -2252,25 +2332,42 @@ function parseConfigDump( data ) {
 				}
 				else if ( t0 == 69 ) {
 					var id = "glb_tempo_ch";
-					var ccid = "glb_tempo_cc";
+					ccid = "glb_tempo_cc";
 					document.getElementById( id ).value = ch+1;
 					document.getElementById( ccid ).value = cc;
 					changeMIDIChannel( id, ccid );
 				}
 				else if ( t0 == 71 ) {
 					var id = "dispmode_ch";
-					var ccid = "dispmode_cc";
+					ccid = "dispmode_cc";
 					document.getElementById( id ).value = ch+1;
 					document.getElementById( ccid ).value = cc;
 					changeMIDIChannel( id, ccid );
 				}
 				else if ( t0 == 72 ) {
 					var id = "dispitem_ch";
-					var ccid = "dispitem_cc";
+					ccid = "dispitem_cc";
 					document.getElementById( id ).value = ch+1;
 					document.getElementById( ccid ).value = cc;
 					changeMIDIChannel( id, ccid );
 				}
+				else if ( t0 == 74 ) {
+					var id = "glb_swing_type_ch";
+					ccid = "glb_swing_type_cc";
+					document.getElementById( id ).value = ch+1;
+					document.getElementById( ccid ).value = cc;
+					changeMIDIChannel( id, ccid );
+				}
+				else if ( t0 == 75 ) {
+					var id = "glb_swing_amount_ch";
+					ccid = "glb_swing_amount_cc";
+					document.getElementById( id ).value = ch+1;
+					document.getElementById( ccid ).value = cc;
+					changeMIDIChannel( id, ccid );
+				}
+			}
+			if ( ccid != "" ) {
+				document.getElementById( ccid + "_rel" ).checked = relative;
 			}
 		}
 		c += 4;
@@ -2322,6 +2419,7 @@ function parseConfigDump( data ) {
 	document.getElementById( "glb_startch" ).value = data[c];		 c += 1;
 	document.getElementById( "glb_startcc" ).value = data[c];		 c += 1;
 	c += 1;
+	changeStartStop();
 	// euclidean off outputs
 	for ( var i = 1; i < 17; ++i ) {
 		document.getElementById( "euc_offoutput_" + i ).value = data[c];
