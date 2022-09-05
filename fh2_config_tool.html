@@ -420,7 +420,7 @@ function makeSysEx() {
 	} 
 	var c = len;
 	// version
-	arr[c] = 9;		 c += 1;
+	arr[c] = 10;	 c += 1;
 	arr[c] = 0;		 c += 1;
 	arr[c] = 0;		 c += 1;
 	arr[c] = 0;		 c += 1;
@@ -586,6 +586,9 @@ function makeSysEx() {
 			outs |= (1<<3);
     	arr[c] = outs;														c += 1;
     	c += 2;
+		for ( let j=0; j<8; ++j ) {
+			arr[c] = document.getElementById( "seqd_" + i + "_n_" + j ).value;	c += 1;
+		}
 	}
 
 	// pad to 4096 bytes
@@ -838,7 +841,7 @@ function writeMIDIChannelSelector( id, includeNone=false, ccid=null ) {
 	}
 	document.write( "</select>" );
 }
-function writeMIDICCSelector( id, includeNone=true, hide=true ) {
+function writeMIDICCSelector( id, includeNone=true, hide=true, showRelative=true ) {
 	document.write( "<select id='" + id + "'>" );
 	if ( includeNone ) {
 		document.write( "<option value='-1'>--</option>" );
@@ -848,7 +851,9 @@ function writeMIDICCSelector( id, includeNone=true, hide=true ) {
 		document.write( "<option value='"+j+"'>" + j + "</option>" );
 	}
 	document.write( "</select>" );
-	document.write( "<div title='Relative' class='relative_cb'><input type='checkbox' class='relative_cb' id='" + id + "_rel' /></div>" );
+	if ( showRelative ) {
+		document.write( "<div title='Relative' class='relative_cb'><input type='checkbox' class='relative_cb' id='" + id + "_rel' /></div>" );
+	}
 	if ( hide ) {
 		document.getElementById( id ).style.display = "none";
 		document.getElementById( id + '_rel' ).style.display = "none";
@@ -869,7 +874,7 @@ At the time of writing this will work only in Google's <a href="http://www.googl
 </div>
 <div class="small" id="status"></div>
 <div class="small">
-This version is for FH-2 firmware v1.17 and above.
+This version is for FH-2 firmware v1.18 and above.
 </div>
 <p>
 
@@ -1686,7 +1691,7 @@ param_label = "error: unknown parameter";
 <tr>
 <th colspan=7>Sequencers</th>
 </tr>
-<tr><td></td><th>MIDI channel</th><th>Internal</th><th>USB C</th><th>USB A</th><th>DIN</th><th>Clock source</th></tr>
+<tr><td></td><th>MIDI channel</th><th>Internal</th><th>USB C</th><th>USB A</th><th>DIN</th><th>Clock source</th><th colspan=8>Notes</th></tr>
 <tr><th>Note sequencers</th><th colspan=5></th><th>(for rate 0)</th></tr>
 <script>
 	for ( let i=0; i<4; ++i ) {
@@ -1710,7 +1715,7 @@ param_label = "error: unknown parameter";
 		document.write( "</tr>" );
 	}
 </script>
-<tr><th>Drum sequencers</th><th colspan=5></th></tr>
+<tr><th>Drum sequencers</th><th colspan=6></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
 <script>
 	for ( let i=0; i<1; ++i ) {
 		let cl = ( i & 1 ) ? "a" : "b";
@@ -1722,6 +1727,13 @@ param_label = "error: unknown parameter";
 		document.write( "<td><input type='checkbox' id='seqd_" + i + "_c'></td>" );
 		document.write( "<td><input type='checkbox' id='seqd_" + i + "_a'></td>" );
 		document.write( "<td><input type='checkbox' id='seqd_" + i + "_d'></td>" );
+		document.write( "<td></td>" );
+		for ( let j=0; j<8; ++j ) {
+			let id = "seqd_" + i + "_n_" + j;
+			document.write( "<td>" );
+			writeMIDICCSelector( id, false, false, false );
+			document.write( "</td>" );
+		}
 		document.write( "</tr>" );
 	}
 </script>
@@ -2155,7 +2167,7 @@ function parseConfigDump( data ) {
 	var c = 0;
 	// version
 	var version = ( data[c] ) | ( data[c+1] << 8 ) | ( data[c+2] << 16 ) | ( data[c+3] << 24 )
-	if ( version != 9 )
+	if ( version != 10 )
 	{
 		alert( "This version of the tool does not match the FH-2 firmware." );
 		return;
@@ -2498,6 +2510,9 @@ function parseConfigDump( data ) {
 		document.getElementById( "seqd_" + i + "_a" ).checked = ( outs >> 2 ) & 1;
 		document.getElementById( "seqd_" + i + "_d" ).checked = ( outs >> 3 ) & 1;
 		c += 2;
+		for ( let j=0; j<8; ++j ) {
+			document.getElementById( "seqd_" + i + "_n_" + j ).value = data[c];	c += 1;
+		}
 	}
 
 	// skip to addendum
