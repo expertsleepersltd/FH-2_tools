@@ -81,6 +81,11 @@ div.relative_cb {
 input.relative_cb {
 	margin:0px;
 }
+div.upload {
+	border: 1px;
+	border-style: dotted;
+	display: inline-block;
+}
 </style>
 
 <script>
@@ -265,6 +270,70 @@ function makeSysExMappings( data, c ) {
 			data[c+1] = cc;
 			data[c+2] = 10 + re;
 			data[c+3] = (j-1)*8 + i;
+			c += 4;
+		
+			map += 1;
+			if ( map >= 384 ) {
+				return data;
+			}
+		}
+	}
+
+	for ( j=0; j<4; ++j ) {
+		let id = "seq" + j + "_";
+		for ( i = 0; i < seqControls.length; ++i ) {
+			let ch = document.getElementById( id + seqControls[i] + "_ch" ).value - 1;
+			let cc = document.getElementById( id + seqControls[i] + "_cc" ).value;
+			let re = document.getElementById( id + seqControls[i] + "_cc" + "_rel" ).checked ? 32 : 0;
+			if ( ch < 0 || cc < 0 ) {
+				continue;
+			}
+			data[c+0] = 0x30 | ch;
+			data[c+1] = cc;
+			data[c+2] = 13 + re;
+			data[c+3] = j*16 + i;
+			c += 4;
+		
+			map += 1;
+			if ( map >= 384 ) {
+				return data;
+			}
+		}
+	}
+	for ( j=0; j<1; ++j ) {
+		let id = "dseq" + j + "_";
+		for ( i = 0; i < dseqControls.length; ++i ) {
+			let ch = document.getElementById( id + dseqControls[i] + "_ch" ).value - 1;
+			let cc = document.getElementById( id + dseqControls[i] + "_cc" ).value;
+			let re = document.getElementById( id + dseqControls[i] + "_cc" + "_rel" ).checked ? 32 : 0;
+			if ( ch < 0 || cc < 0 ) {
+				continue;
+			}
+			data[c+0] = 0x30 | ch;
+			data[c+1] = cc;
+			data[c+2] = 13 + re;
+			data[c+3] = (4+j)*16 + i;
+			c += 4;
+		
+			map += 1;
+			if ( map >= 384 ) {
+				return data;
+			}
+		}
+	}
+	for ( j=0; j<8; ++j ) {
+		let id = "dseq0_" + j + "_";
+		for ( i = 0; i < dseqlControls.length; ++i ) {
+			let ch = document.getElementById( id + dseqlControls[i] + "_ch" ).value - 1;
+			let cc = document.getElementById( id + dseqlControls[i] + "_cc" ).value;
+			let re = document.getElementById( id + dseqlControls[i] + "_cc" + "_rel" ).checked ? 32 : 0;
+			if ( ch < 0 || cc < 0 ) {
+				continue;
+			}
+			data[c+0] = 0x30 | ch;
+			data[c+1] = cc;
+			data[c+2] = 14 + re;
+			data[c+3] = j*16 + i;
 			c += 4;
 		
 			map += 1;
@@ -590,6 +659,10 @@ function makeSysEx() {
 			arr[c] = document.getElementById( "seqd_" + i + "_n_" + j ).value;	c += 1;
 		}
 	}
+	for ( let i=1; i<=16; ++i ) {
+		arr[c] = document.getElementById( "arp_" + i + "_clk" ).value;	c += 1;
+		c += 3;
+	}
 
 	// pad to 4096 bytes
 	while ( ( c - len ) < 4096 ) {
@@ -606,12 +679,9 @@ function makeSysEx() {
 		arr[c] = ( v & 0x80 ) ? 1 : 0;	c += 1;
 	}
 
-	var str = ""
-	for ( var i = 0; i < c; ++i ) {
-		str += String.fromCharCode( arr[i] );
-	}
-	str += String.fromCharCode( 0xF7 );
-	return str;
+	arr[c] = 0xF7; c += 1;
+
+	return arr.subarray( 0, c );
 }
 function makeMsgSysEx() {
 	var d = [0xF0, 0x00, 0x21, 0x27, 0x2F, 0x02]
@@ -645,6 +715,9 @@ function dumpSysex( data, id, prefix ) {
 var arpControls = [ "M", "R", "G", "L", "T", "P", "S", "E" ];
 var arpControlsUI = [ "P", "E" ];
 var arpControlsUI2 = [ "M", "R", "G", "L", "T", "S" ];
+var seqControls = [ "T", "S", "G" ];
+var dseqControls = [ "S" ];
+var dseqlControls = [ "T", "S" ];
 var mcvMappable2Controls = [ "A", "D", "S", "R", "N", "P", "V", "RND" ];
 var mcvCommands = [ "A", "R", "T", "N", "P", "K", "O" ];
 var eucControls = [ "P", "S", "R", "T", "G", "A", "E" ];
@@ -822,7 +895,6 @@ function writeBaseGateChannelSelector( id ) {
 	document.write( "</select>" );
 }
 function changeMIDIChannel( id, ccid ) {
-	console.log( id, ccid );
 	if ( ccid != null ) {
 		var show = ( document.getElementById( id ).value > 0 );
 		document.getElementById( ccid ).style.display = show ? "inline" : "none";
@@ -879,12 +951,21 @@ This version is for FH-2 firmware v1.18 and above.
 <p>
 
 <button class="big" accesskey='s' onclick="send()">Send to FH-2</button>
-<label for="midioutput">Send to MIDI output port: </label><select id="midioutput" accesskey='o'></select>
+<label for="midioutput">Send to MIDI output port: </label><select id="midioutput" onchange="changeOutput()" accesskey='o'></select>
 <button onclick="sendMsg()">Send Msg</button>
 <br>
 <button class="big" accesskey='u' onclick="request()">Upload from FH-2</button>
 <label for="midiinput">Listen on MIDI input port: </label><select id="midiinput" onchange='changeInput()' accesskey='i'></select>
 <button onclick="reqVersion()" accesskey='v'>Request FH-2 Version</button>
+</p>
+<div id='upload' class='upload'>
+<label for="chooseConfig">Choose config to load:</label><input type="file" id="chooseConfig" name="files[]" single />
+<button onclick="loadConfig()">Load</button>
+</div>
+<div id='download' class='upload'>
+<button onclick="prepareSaveConfig()">Generate config to save</button>
+<a id="saveConfig" download="config.syx">Click to Save Config</a>
+</div>
 <p>
 <textarea rows=5 cols=50 id="log" class="log" readOnly title="Log" accesskey='l'></textarea>
 <textarea rows=5 cols=48 name="text" id="txSysex" title="Transmitted SysEx"></textarea>
@@ -907,7 +988,7 @@ This version is for FH-2 firmware v1.18 and above.
 <label class = 'hidden' for='euc_lbl'>Show Euclidean Patterns</label>
 <input type='checkbox' id='euc_lbl' onclick='showHide("euc_table",this.checked)' accesskey='r'>Show Euclidean Patterns</input>
 <label class = 'hidden' for='euc_lbl'>Show Sequencers</label>
-<input type='checkbox' id='euc_lbl' onclick='showHide("seq_table",this.checked)' accesskey='q'>Show Sequencers</input>
+<input type='checkbox' id='euc_lbl' onclick='showHide("seq_table",this.checked);showHide("seqm_table",this.checked);' accesskey='q'>Show Sequencers</input>
 <br>
 <label class="hidden" for="showfh2outputs">Show FH-2 Output Configurator</label>
 <input id="showfh2outputs" type='checkbox' onclick='showHide("outs0_table",this.checked)' checked=true  accesskey='w'>Show FH-2 Output Configurator</input>
@@ -1242,7 +1323,7 @@ document.getElementById( "glb_triglen" ).value = 50;
 		id = "mcv_scheme_" + i;
 		document.write( "<td><label class='hidden' for='" + id + "'>Voice Allocation (Converter " + i + ")</label>");
 		document.write( "<select id='" + id + "'>" );
-		document.write( "<option value=0>Round robin</option><option value=1>Lowest voice</option><option value=2>Unison</option><option value=3>Unison 2</option><option value=4>Note range</option>" );
+		document.write( "<option value=0>Round robin</option><option value=1>Lowest voice</option><option value=2>Unison</option><option value=3>Unison 2</option><option value=4>Note range</option><option value=5>Alternating</option><option value=6>Random</option>" );
 		document.write( "</select></td>" );
 
 		id = "mcv_stealing_" + i;
@@ -1412,18 +1493,19 @@ param_label = "error: unknown parameter";
 <table id="arp_table"><caption class="hidden">Arpeggiators</caption>
 <thead>
 <tr>
-<th colspan=14>Arpeggiator</th>
+<th colspan=15>Arpeggiator</th>
 </tr>
 <tr>
 <td></td>
 <th>Mode</th><th>Range</th><th>Gate Length</th><th>Latch</th><th>Rate</th><th>Reset</th>
-<th>Add</th><th>Remove</th><th>Rest</th><th>Truncate</th><th>Transpose</th><th>Transp. in key</th><th>Set root</th>
+<th>Add</th><th>Remove</th><th>Rest</th><th>Truncate</th><th>Transpose</th><th>Transp. in key</th><th>Set root</th><th>Clock source</th>
 </tr>
 </thead>
 <tr>
 <td></td>
 <td class='tc' colspan=6>Preset Items - Channel/CC</td>
 <td class='tc_a' colspan=7>Commands - Channel/CC</td>
+<td class='tc'>(for rate 0)</td>
 </tr>
 <script>
 	for ( i = 1; i < 17; ++i ) {
@@ -1513,6 +1595,14 @@ param_label = "error: unknown parameter";
 			writeMIDICCSelector( ccid );
 			document.write( "</td>" );
 		}
+		let id = "arp_" + i + "_clk";
+		document.write( "<td><label class='hidden' for='" + id + "'>Arpeggiator " + (i + 1) + " external clock source</label>" );
+		document.write( "<select id='" + id + "'>" );
+		document.write( "<option value=0>External</option>" );
+		for ( let j=1; j<=16; ++j ) {
+			document.write( "<option value=" + j + ">Euclidean " + j + "</option>" );
+		}
+		document.write( "</select></td>" );
 		document.write( "</tr>" );
 	}
 </script>
@@ -1596,7 +1686,7 @@ param_label = "error: unknown parameter";
 		id = clkid + "_type";
 		document.write( "<td><label class='hidden' for='" + id + "'>Type (Trigger " + i + ")</label>");
 		document.write( "<select onchange='changeTrigger(\"" + clkid + "\")' id='" + id + "'>" );
-		document.write( "<option value='0'>--</option><option value='1'>Trigger</option><option value='2'>Gate</option><option value='3'>Velocity Trig</option><option value='4'>Velocity Gate</option><option value='5'>Accent Trig</option><option value='6'>Accent Gate</option><option value='7'>Toggle</option><option value='8'>On/off Trig</option><option value='9'>Envelope</option>" );
+		document.write( "<option value='0'>--</option><option value='1'>Trigger</option><option value='2'>Gate</option><option value='3'>Velocity Trig</option><option value='4'>Velocity Gate</option><option value='5'>Accent Trig</option><option value='6'>Accent Gate</option><option value='7'>Toggle</option><option value='8'>On/off Trig</option><option value='9'>Envelope</option><option value='10'>Velocity</option>" );
 		document.write( "</select></td>" );
 		id = clkid + "_ch";
 		document.write( "<td><label class='hidden' for='" + id + "'>MIDI channel (Trigger " + i + ")</label>");
@@ -1712,6 +1802,7 @@ param_label = "error: unknown parameter";
 			document.write( "<option value=" + j + ">Euclidean " + j + "</option>" );
 		}
 		document.write( "</select></td>" );
+		document.write( "<td colspan=8></td>" );
 		document.write( "</tr>" );
 	}
 </script>
@@ -1733,6 +1824,73 @@ param_label = "error: unknown parameter";
 			document.write( "<td>" );
 			writeMIDICCSelector( id, false, false, false );
 			document.write( "</td>" );
+		}
+		document.write( "</tr>" );
+	}
+</script>
+</table>
+
+<table id="seqm_table"><caption class="hidden">Sequencer mappings</caption>
+<tr>
+<th colspan=18>Sequencer mappings</th>
+</tr>
+<tr><td></td><th>Rate</th><th>Reset</th><th>Gate Length</th></tr>
+<tr><th>Note sequencers</th><th colspan=3>Channel/CC</th></tr>
+<script>
+	var seqControlLabels = [ "rate", "reset", "gate length" ];
+	for ( let i=0; i<4; ++i ) {
+		let cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + (i+1) + "</td>" );
+		for ( let j=0; j<seqControls.length; ++j ) {
+			let chid = "seq" + i + "_" + seqControls[j] + "_ch";
+			let ccid = "seq" + i + "_" + seqControls[j] + "_cc";
+			let param_label = seqControlLabels[j];
+			document.write( "<td><label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (sequencer " + i + ")</label>");
+			writeMIDIChannelSelector( chid, true, ccid );
+			document.write( "<label class='hidden' for='" + ccid + "'>" + param_label + " MIDI CC (sequencer " + i + ")</label>");
+			writeMIDICCSelector( ccid );
+			document.write( "</td>" );
+		}
+		document.write( "<td colspan=14></td>" );
+		document.write( "</tr>" );
+	}
+</script>
+<tr><td></td><th>Global</th>
+<script>
+    for ( let j=0; j<8; ++j ) {
+    	document.write( "<th colspan=2>Lane " + (1+j) + "</th>" );
+    }
+</script>
+<tr><th>Drum sequencers</th><th>Reset</th>
+<th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th>
+</tr>
+<script>
+	var dseqControlLabels = [ "reset" ];
+	var dseqlControlLabels = [ "rate", "reset" ];
+	for ( let i=0; i<1; ++i ) {
+		let cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + (i+1) + "</td>" );
+		for ( let j=0; j<dseqControls.length; ++j ) {
+			let chid = "dseq" + i + "_" + dseqControls[j] + "_ch";
+			let ccid = "dseq" + i + "_" + dseqControls[j] + "_cc";
+			let param_label = dseqControlLabels[j];
+			document.write( "<td><label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (drum sequencer " + i + ")</label>");
+			writeMIDIChannelSelector( chid, true, ccid );
+			document.write( "<label class='hidden' for='" + ccid + "'>" + param_label + " MIDI CC (drum sequencer " + i + ")</label>");
+			writeMIDICCSelector( ccid );
+			document.write( "</td>" );
+		}
+		for ( let k=0; k<8; ++k ) {
+			for ( let j=0; j<dseqlControls.length; ++j ) {
+				let chid = "dseq" + i + "_" + k + "_" + dseqlControls[j] + "_ch";
+				let ccid = "dseq" + i + "_" + k + "_" + dseqlControls[j] + "_cc";
+				let param_label = dseqlControlLabels[j];
+				document.write( "<td><label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (drum sequencer " + i + " lane " + k + ")</label>");
+				writeMIDIChannelSelector( chid, true, ccid );
+				document.write( "<label class='hidden' for='" + ccid + "'>" + param_label + " MIDI CC (drum sequencer " + i + " lane " + k + ")</label>");
+				writeMIDICCSelector( ccid );
+				document.write( "</td>" );
+			}
 		}
 		document.write( "</tr>" );
 	}
@@ -2067,6 +2225,7 @@ showHide( "clk_table", false );
 showHide( "trg_table", false );
 showHide( "euc_table", false );
 showHide( "seq_table", false );
+showHide( "seqm_table", false );
 showHide( "hid_table", false );
 showHide( "kbd_table", false );
 showHide( "cvm_table", false );
@@ -2247,6 +2406,36 @@ function parseConfigDump( data ) {
 			ta.style.display = "none";
 		}
 	}
+	for ( j=0; j<4; ++j ) {
+		let id = "seq" + j + "_";
+		for ( i = 0; i < seqControls.length; ++i ) {
+			let ccid = id + seqControls[i] + "_cc";
+			document.getElementById( id + seqControls[i] + "_ch" ).value = -1;
+			let ta = document.getElementById( ccid );
+			ta.value = -1;
+			ta.style.display = "none";
+		}
+	}
+	for ( j=0; j<1; ++j ) {
+		let id = "dseq" + j + "_";
+		for ( i = 0; i < dseqControls.length; ++i ) {
+			let ccid = id + dseqControls[i] + "_cc";
+			document.getElementById( id + dseqControls[i] + "_ch" ).value = -1;
+			let ta = document.getElementById( ccid );
+			ta.value = -1;
+			ta.style.display = "none";
+		}
+	}
+	for ( j=0; j<8; ++j ) {
+		let id = "dseq0_" + j + "_";
+		for ( i = 0; i < dseqlControls.length; ++i ) {
+			let ccid = id + dseqlControls[i] + "_cc";
+			document.getElementById( id + dseqlControls[i] + "_ch" ).value = -1;
+			let ta = document.getElementById( ccid );
+			ta.value = -1;
+			ta.style.display = "none";
+		}
+	}
 			document.getElementById( "glb_tempo_ch" ).value = -1;
 			var ta = document.getElementById( "glb_tempo_cc" );
 			ta.value = -1;
@@ -2337,6 +2526,43 @@ function parseConfigDump( data ) {
 						var id = "mcvm2_" + j + "_";
 						ccid = id + mcvMappable2Controls[k] + "_cc";
 						id = id + mcvMappable2Controls[k] + "_ch";
+						document.getElementById( id ).value = ch+1;
+						document.getElementById( ccid ).value = cc;
+						changeMIDIChannel( id, ccid );
+					}
+				}
+				else if ( t0 == 13 ) {
+					let j = ( t1 >> 4 );
+					let k = t1 & 0xf;
+					if ( j < 4 ) {
+						if ( k >= 0 && k < seqControls.length ) {
+							let id = "seq" + j + "_";
+							ccid = id + seqControls[k] + "_cc";
+							id = id + seqControls[k] + "_ch";
+							document.getElementById( id ).value = ch+1;
+							document.getElementById( ccid ).value = cc;
+							changeMIDIChannel( id, ccid );
+						}
+					}
+					else {
+						j -= 4;
+						if ( k >= 0 && k < dseqControls.length ) {
+							let id = "dseq" + j + "_";
+							ccid = id + dseqControls[k] + "_cc";
+							id = id + dseqControls[k] + "_ch";
+							document.getElementById( id ).value = ch+1;
+							document.getElementById( ccid ).value = cc;
+							changeMIDIChannel( id, ccid );
+						}
+					}
+				}
+				else if ( t0 == 14 ) {
+					let j = ( t1 >> 4 );
+					let k = t1 & 0xf;
+					if ( k >= 0 && k < dseqlControls.length ) {
+						let id = "dseq0_" + j + "_";
+						ccid = id + dseqlControls[k] + "_cc";
+						id = id + dseqlControls[k] + "_ch";
 						document.getElementById( id ).value = ch+1;
 						document.getElementById( ccid ).value = cc;
 						changeMIDIChannel( id, ccid );
@@ -2514,6 +2740,11 @@ function parseConfigDump( data ) {
 			document.getElementById( "seqd_" + i + "_n_" + j ).value = data[c];	c += 1;
 		}
 	}
+	// mcv2
+	for ( let i=1; i<=16; ++i ) {
+		document.getElementById( "arp_" + i + "_clk" ).value = data[c];	c += 1;
+		c += 3;
+	}
 
 	// skip to addendum
 	c = 4096;
@@ -2547,7 +2778,7 @@ function onStateChange(e) {
     var inputs = midi.inputs.values();
     for ( var input = inputs.next(); input && !input.done; input = inputs.next() ) {
 	    str += "<option value='" + input.value.id + "'>" + input.value.name + "</option>";
-	    if ( input.value.name == "FH-2" ) {
+	    if ( input.value.name == fh2InPortName ) {
 		    fh2 = input.value.id;
 	    }
     }
@@ -2560,8 +2791,9 @@ function onStateChange(e) {
     var outputs = midi.outputs.values();
     for ( var output = outputs.next(); output && !output.done; output = outputs.next() ) {
 	    str += "<option value='" + output.value.id + "'>" + output.value.name + "</option>";
-	    if ( output.value.name == "FH-2" ) {
+	    if ( output.value.name == fh2OutPortName ) {
 		    fh2 = output.value.id;
+			midi.outputs.get( output.value.id ).send( [ 0xFE ] );
 	    }
     }
     document.getElementById( "midioutput" ).innerHTML = str
@@ -2569,13 +2801,13 @@ function onStateChange(e) {
 	    document.getElementById( "midioutput" ).value = fh2;
     }
 
-	changeInput();
+	setup_onmidimessage();
 }
 function onMIDIFailure(e) {
 	log( "midi access failure" );
     status("No access to MIDI devices or your browser doesn't support WebMIDI API.");
 }
-function changeInput() {
+function setup_onmidimessage() {
     var inputs = midi.inputs.values();
     if ( inputs.size == 0 ) {
     	return;
@@ -2585,6 +2817,18 @@ function changeInput() {
     }
 	var input = midi.inputs.get( document.getElementById( "midiinput" ).value );
 	input.onmidimessage = onMIDIMessage;
+}
+function changeInput() {
+	setup_onmidimessage();
+	// Save the current port settings
+	let inputSelector = document.getElementById("midiinput"); 
+	let selectedPortName = inputSelector.options[inputSelector.selectedIndex].text;
+    localStorage.setItem(fh2MIDIInKey, selectedPortName);
+}
+function changeOutput() {
+	var outputSelector = document.getElementById("midioutput"); 
+	var selectedPortName = outputSelector.options[outputSelector.selectedIndex].text;
+    localStorage.setItem(fh2MIDIOutKey, selectedPortName);
 }
 function onMIDIMessage(message) {
     data = message.data;
@@ -2607,14 +2851,10 @@ function onMIDIMessage(message) {
 	}
 }
 function send() {
-	var str = makeSysEx();
-	var arr = new Uint8Array( str.length );
-	for ( var i=0; i<str.length; ++i ) {
-		arr[i] = str.charCodeAt( i );
-	}
-	var output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	let arr = makeSysEx();
+	let output = midi.outputs.get( document.getElementById( "midioutput" ).value );
 	output.send( arr );
-	var dd = log( "sent sysex (" + str.length + " bytes)" );
+	let dd = log( "sent sysex (" + arr.length + " bytes)" );
 	dumpSysex( arr, "txSysex", dd+"\n" );
 }
 function sendMsg() {
@@ -2642,6 +2882,75 @@ function reqVersion() {
 	var dd = log( "sent version request to FH-2" );
 	dumpSysex( arr, "txSysex", dd+"\n" );
 }
+var chosenConfig = []
+function handleFileSelect(evt,id) {
+	let files = evt.target.files; // FileList object
+	let f = files[0];
+
+	var reader = new FileReader();
+
+	reader.onload = (function(theFile) {
+		return function(e) {
+			let ints = new Uint8Array( e.target.result );
+			let arr = Array.from( ints ) ;
+			chosenConfig = [];
+			if ( arr.length < 7
+				|| arr[0] != 0xF0
+				|| arr[1] != 0x00
+				|| arr[2] != 0x21
+				|| arr[3] != 0x27
+				|| arr[4] != 0x2F
+				|| arr[5] != 0x10
+				|| arr[arr.length-1] != 0xF7 ) {
+				alert( "Not a valid config dump file" );
+				console.log( arr );
+			} else {
+				chosenConfig = arr;
+			}
+		};
+	  })(f);
+  
+	reader.readAsArrayBuffer( f );
+}
+document.getElementById('chooseConfig').addEventListener('change', handleFileSelect, false);
+function loadConfig() {
+	if ( chosenConfig.length >= 7 ) {
+		parseConfigDump( chosenConfig.slice( 8, -1 ) );
+    	let dd = log( "loaded config from file" );
+	}
+}
+var configBlob = null;
+function prepareSaveConfig() {
+	let data = makeSysEx();
+	configBlob = new Blob([data], {type: "application/octet-stream"});
+	let url = window.URL.createObjectURL(configBlob);
+	document.getElementById( "saveConfig" ).href = url;
+	document.getElementById( 'saveConfig' ).style.display = "inline";
+}
+function makeDownloadInvalid() {
+	document.getElementById( 'saveConfig' ).style.display = "none";
+}
+
+const fh2MIDIInKey = "fh2MIDIInKey";
+const fh2MIDIOutKey = "fh2MIDIOutKey";
+const defaultFH2PortName = "FH-2";
+var fh2InPortName = defaultFH2PortName;
+var fh2OutPortName = defaultFH2PortName;
+
+if(!localStorage.getItem(fh2MIDIInKey)) {  // No input stored
+    localStorage.setItem(fh2MIDIInKey, defaultFH2PortName);
+} 
+else {
+    fh2InPortName = localStorage.getItem(fh2MIDIInKey);
+}
+
+if(!localStorage.getItem(fh2MIDIOutKey)) {  // No output stored
+    localStorage.setItem(fh2MIDIOutKey, defaultFH2PortName);
+} 
+else {
+    fh2OutPortName = localStorage.getItem(fh2MIDIOutKey);
+}
+
 if ( navigator.requestMIDIAccess ) {
     navigator.requestMIDIAccess ( {
         sysex: true
