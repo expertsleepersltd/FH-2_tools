@@ -7,6 +7,35 @@
 
 <style>
 body {
+}
+button {
+}
+select {
+}
+tr.a {
+	background-color: #e0e0e0;
+}
+th {
+	background-color: #c0c0c0;
+	font-size: 80%;
+}
+td.tc {
+	text-align: center;
+	background-color: #c0c0c0;
+	font-size: 80%;
+}
+td.tc_a {
+	text-align: center;
+	background-color: #e0e0e0;
+	font-size: 80%;
+}
+input {
+}
+textarea {
+    font-family: 'PT Mono', monospace;
+	font-size: 11px;
+}
+body {
 	font-family: 'PT Sans', serif;
 	font-size: 16px;
 }
@@ -23,24 +52,7 @@ div.small {
 table {
 	margin-bottom: 5px;
 }
-td.tc {
-	text-align: center;
-	background-color: #c0c0c0;
-	font-size: 80%;
-}
-td.tc_a {
-	text-align: center;
-	background-color: #e0e0e0;
-	font-size: 80%;
-}
 div.tc_c {
-	font-size: 80%;
-}
-tr.a {
-	background-color: #e0e0e0;
-}
-th {
-	background-color: #c0c0c0;
 	font-size: 80%;
 }
 div.rth {
@@ -48,10 +60,6 @@ div.rth {
 	transform: rotate(200deg);
 	padding-left: 5px;
 	padding-right: 5px;
-}
-textarea {
-    font-family: 'PT Mono', monospace;
-	font-size: 11px;
 }
 table.logs {
 	margin: 0px;
@@ -89,6 +97,59 @@ div.upload {
 </style>
 
 <script>
+function changeTheme() {
+	let stylesheet = document.styleSheets[2];
+	if ( document.getElementById( "theme" ).value == 0 ) {
+		// body
+		stylesheet.cssRules[0].style.setProperty('background-color', 'white');
+		stylesheet.cssRules[0].style.setProperty('color', 'black');
+		// button
+		stylesheet.cssRules[1].style.setProperty('background-color', '#efefef');
+		stylesheet.cssRules[1].style.setProperty('color', 'black');
+		// select
+		stylesheet.cssRules[2].style.setProperty('background-color', 'white');
+		stylesheet.cssRules[2].style.setProperty('color', 'black');
+		// tr.a
+		stylesheet.cssRules[3].style.setProperty('background-color', '#e0e0e0');
+		// th
+		stylesheet.cssRules[4].style.setProperty('background-color', '#c0c0c0');
+		// td.tc
+		stylesheet.cssRules[5].style.setProperty('background-color', '#c0c0c0');
+		// td.tc_a
+		stylesheet.cssRules[6].style.setProperty('background-color', '#e0e0e0');
+		// input
+		stylesheet.cssRules[7].style.setProperty('background-color', 'white');
+		stylesheet.cssRules[7].style.setProperty('color', 'black');
+		// textarea
+		stylesheet.cssRules[8].style.setProperty('background-color', 'white');
+		stylesheet.cssRules[8].style.setProperty('color', 'black');
+	} else {
+		// body
+		stylesheet.cssRules[0].style.setProperty('background-color', 'black');
+		stylesheet.cssRules[0].style.setProperty('color', '#c0c0c0');
+		// button
+		stylesheet.cssRules[1].style.setProperty('background-color', 'black');
+		stylesheet.cssRules[1].style.setProperty('color', '#c0c0c0');
+		// select
+		stylesheet.cssRules[2].style.setProperty('background-color', 'black');
+		stylesheet.cssRules[2].style.setProperty('color', '#c0c0c0');
+		// tr.a
+		stylesheet.cssRules[3].style.setProperty('background-color', '#505050');
+		// th
+		stylesheet.cssRules[4].style.setProperty('background-color', '#505050');
+		// td.tc
+		stylesheet.cssRules[5].style.setProperty('background-color', '#505050');
+		// td.tc_a
+		stylesheet.cssRules[6].style.setProperty('background-color', '#606060');
+		// input
+		stylesheet.cssRules[7].style.setProperty('background-color', 'black');
+		stylesheet.cssRules[7].style.setProperty('color', '#c0c0c0');
+		// textarea
+		stylesheet.cssRules[8].style.setProperty('background-color', 'black');
+		stylesheet.cssRules[8].style.setProperty('color', '#c0c0c0');
+	}
+    localStorage.setItem( themeKey, document.getElementById( "theme" ).value );
+}
 function log( t ) {
 	var ta = document.getElementById( "log" );
 	var d = new Date();
@@ -428,6 +489,70 @@ function makeSysExMappings( data, c ) {
 				}
 			}
 		}
+		{
+			var ch = document.getElementById( "nudgefaster_ch" ).value - 1;
+			var cc = document.getElementById( "nudgefaster_cc" ).value;
+			if ( ch >= 0 && cc >= 0 ) {
+				data[c+0] = 0x30 | ch;
+				data[c+1] = cc;
+				data[c+2] = 76;
+				data[c+3] = 0;
+				c += 4;
+		
+				map += 1;
+				if ( map >= 384 ) {
+					return data;
+				}
+			}
+		}
+		{
+			var ch = document.getElementById( "nudgeslower_ch" ).value - 1;
+			var cc = document.getElementById( "nudgeslower_cc" ).value;
+			if ( ch >= 0 && cc >= 0 ) {
+				data[c+0] = 0x30 | ch;
+				data[c+1] = cc;
+				data[c+2] = 77;
+				data[c+3] = 0;
+				c += 4;
+		
+				map += 1;
+				if ( map >= 384 ) {
+					return data;
+				}
+			}
+		}
+		{
+			var ch = document.getElementById( "inctempo_ch" ).value - 1;
+			var cc = document.getElementById( "inctempo_cc" ).value;
+			if ( ch >= 0 && cc >= 0 ) {
+				data[c+0] = 0x30 | ch;
+				data[c+1] = cc;
+				data[c+2] = 78;
+				data[c+3] = 0;
+				c += 4;
+		
+				map += 1;
+				if ( map >= 384 ) {
+					return data;
+				}
+			}
+		}
+		{
+			var ch = document.getElementById( "dectempo_ch" ).value - 1;
+			var cc = document.getElementById( "dectempo_cc" ).value;
+			if ( ch >= 0 && cc >= 0 ) {
+				data[c+0] = 0x30 | ch;
+				data[c+1] = cc;
+				data[c+2] = 79;
+				data[c+3] = 0;
+				c += 4;
+		
+				map += 1;
+				if ( map >= 384 ) {
+					return data;
+				}
+			}
+		}
 	
 	log( map + " mapping(s)" );
 	
@@ -661,7 +786,15 @@ function makeSysEx() {
 	}
 	for ( let i=1; i<=16; ++i ) {
 		arr[c] = document.getElementById( "arp_" + i + "_clk" ).value;	c += 1;
-		c += 3;
+		let m = document.getElementById( "arp_out_" + i + "_ch" ).value - 1;
+		if ( document.getElementById( "arp_out_" + i + "_c" ).checked )
+			m |= (1<<4);
+		if ( document.getElementById( "arp_out_" + i + "_a" ).checked )
+			m |= (1<<5);
+		if ( document.getElementById( "arp_out_" + i + "_d" ).checked )
+			m |= (1<<6);
+		arr[c] = m;		c += 1;
+		c += 2;
 	}
 
 	// pad to 4096 bytes
@@ -724,6 +857,7 @@ var eucControls = [ "P", "S", "R", "T", "G", "A", "E" ];
 var menus = [ 'C', 'D', 'E' ];
 var menuCCs = [ 80, 88, 96 ];
 var unhandled = [];
+var global_mappable = [ "glb_tempo", "dispmode", "dispitem", "glb_swing_type", "glb_swing_amount", "nudgefaster", "nudgeslower", "inctempo", "dectempo" ];
 function hex( b ) {
 	h = nybbleChar( b >> 4 );
 	h += nybbleChar( b & 0xf );
@@ -898,7 +1032,10 @@ function changeMIDIChannel( id, ccid ) {
 	if ( ccid != null ) {
 		var show = ( document.getElementById( id ).value > 0 );
 		document.getElementById( ccid ).style.display = show ? "inline" : "none";
-		document.getElementById( ccid + "_rel" ).style.display = show ? "inline" : "none";
+		let rel = document.getElementById( ccid + "_rel" );
+		if ( rel != null ) {
+			rel.style.display = show ? "inline" : "none";
+		}
 	}
 }
 
@@ -928,7 +1065,9 @@ function writeMIDICCSelector( id, includeNone=true, hide=true, showRelative=true
 	}
 	if ( hide ) {
 		document.getElementById( id ).style.display = "none";
-		document.getElementById( id + '_rel' ).style.display = "none";
+		if ( showRelative ) {
+			document.getElementById( id + '_rel' ).style.display = "none";
+		}
 	}
 }
 function showHide( id, show ) {
@@ -946,7 +1085,8 @@ At the time of writing this will work only in Google's <a href="http://www.googl
 </div>
 <div class="small" id="status"></div>
 <div class="small">
-This version is for FH-2 firmware v1.19 and above.
+This version is for FH-2 firmware v1.21 and above.
+<label for="theme">Theme: </label><select id="theme" onchange="changeTheme()"><option value=0>Light</option><option value=1>Dark</option></select>
 </div>
 <p>
 
@@ -974,7 +1114,7 @@ This version is for FH-2 firmware v1.19 and above.
 <label for="config_name">Configuration name:</label><input id='config_name' accesskey='n' type='text'>
 <p>
 <label class = 'hidden' for='glb_lbl'>Show Globals</label>
-<input id='glb_lbl' type='checkbox' onclick='showHide("glb_table",this.checked)' accesskey="b">Show Globals</input>
+<input id='glb_lbl' type='checkbox' onclick='showHide("glb_table",this.checked);showHide("glb_table2",this.checked)' accesskey="b">Show Globals</input>
 <label class = 'hidden' for='conv_lbl'>Show MIDI/CV Converters</label>
 <input type='checkbox' id='conv_lbl' onclick='showHide("mcv_table",this.checked)' checked=true accesskey='m'>Show MIDI/CV Converters</input>
 <label class = 'hidden' for='env_lbl'>Show Portamento/Transpose/Envelopes</label>
@@ -987,8 +1127,8 @@ This version is for FH-2 firmware v1.19 and above.
 <input type='checkbox' id='trig_lbl' onclick='showHide("trg_table",this.checked)' accesskey='t'>Show Triggers</input>
 <label class = 'hidden' for='euc_lbl'>Show Euclidean Patterns</label>
 <input type='checkbox' id='euc_lbl' onclick='showHide("euc_table",this.checked)' accesskey='r'>Show Euclidean Patterns</input>
-<label class = 'hidden' for='euc_lbl'>Show Sequencers</label>
-<input type='checkbox' id='euc_lbl' onclick='showHide("seq_table",this.checked);showHide("seqm_table",this.checked);' accesskey='q'>Show Sequencers</input>
+<label class = 'hidden' for='sq_lbl'>Show Sequencers</label>
+<input type='checkbox' id='sq_lbl' onclick='showHide("seq_table",this.checked);showHide("seqm_table",this.checked);' accesskey='q'>Show Sequencers</input>
 <br>
 <label class="hidden" for="showfh2outputs">Show FH-2 Output Configurator</label>
 <input id="showfh2outputs" type='checkbox' onclick='showHide("outs0_table",this.checked)' checked=true  accesskey='w'>Show FH-2 Output Configurator</input>
@@ -1147,6 +1287,36 @@ This version is for FH-2 firmware v1.19 and above.
 </tr>
 </tbody>
 </table>
+<table id="glb_table2"><caption class="hidden">Globals</caption>
+<thead>
+<tr class="a">
+<th>Nudge faster</th><th>Nudge slower</th><th>Inc tempo</th><th>Dec tempo</th>
+</tr>
+<tr class="b">
+<th>Channel/CC</th><th>Channel/CC</th>
+<th>Channel/CC</th><th>Channel/CC</th>
+</tr>
+</thead>
+<tbody>
+<td><label class="hidden" for="nudgefaster_ch">Nudge faster MIDI Channel</label><label class="hidden" for="nudgefaster_cc">Nudge faster MIDI CC</label><script>
+	writeMIDIChannelSelector( "nudgefaster_ch", true, "nudgefaster_cc" );
+	writeMIDICCSelector( "nudgefaster_cc", true, true, false );
+</script></td>
+<td><label class="hidden" for="nudgeslower_ch">Nudge slower MIDI Channel</label><label class="hidden" for="nudgeslower_cc">Nudge slower MIDI CC</label><script>
+	writeMIDIChannelSelector( "nudgeslower_ch", true, "nudgeslower_cc" );
+	writeMIDICCSelector( "nudgeslower_cc", true, true, false );
+</script></td>
+<td><label class="hidden" for="inctempo_ch">Inc tempo MIDI Channel</label><label class="hidden" for="inctempo_cc">Inc tempo MIDI CC</label><script>
+	writeMIDIChannelSelector( "inctempo_ch", true, "inctempo_cc" );
+	writeMIDICCSelector( "inctempo_cc", true, true, false );
+</script></td>
+<td><label class="hidden" for="dectempo_ch">Dec tempo MIDI Channel</label><label class="hidden" for="dectempo_cc">Dec tempo MIDI CC</label><script>
+	writeMIDIChannelSelector( "dectempo_ch", true, "dectempo_cc" );
+	writeMIDICCSelector( "dectempo_cc", true, true, false );
+</script></td>
+</tbody>
+</table>
+
 <script>
 changeStartStop();
 document.getElementById( "glb_transpose" ).value = 0;
@@ -1155,7 +1325,7 @@ document.getElementById( "glb_triglen" ).value = 50;
 
 <table id="mcv_table"><caption class="hidden">MIDI/CV Converters</caption>
 <tr>
-<th></th><th><div class='rth'>Enable</div></th><th>MIDI<br>Channel</th><th colspan=2>Note range</th><th>Type</th>
+<th><div class='rth'>Converter</div></th><th><div class='rth'>Enable</div></th><th>MIDI<br>Channel</th><th colspan=2>Note range</th><th>Type</th>
 <th>Base<br>Output</th><th>Base<br>Gate</th>
 <th><div class='rth'>CV</div></th><th><div class='rth'>Gate</div></th><th><div class='rth'>Velocity<br>Gate</div></th><th><div class='rth'>Velocity</div></th><th><div class='rth'>Release<br>Velocity</div></th><th><div class='rth'>Trigger</div></th><th><div class='rth'>Envelope</div></th><th><div class='rth'>Aftertouch</div></th><th><div class='rth'>Random</div></th><th><div class='rth'>Y</div></th>
 <th><div class='rth'>Gate</div></th><th><div class='rth'>Aftertouch</div></th><th><div class='rth'>Bend</div></th>
@@ -1493,12 +1663,13 @@ param_label = "error: unknown parameter";
 <table id="arp_table"><caption class="hidden">Arpeggiators</caption>
 <thead>
 <tr>
-<th colspan=15>Arpeggiator</th>
+<th colspan=19>Arpeggiator</th>
 </tr>
 <tr>
 <td></td>
 <th>Mode</th><th>Range</th><th>Gate Length</th><th>Latch</th><th>Rate</th><th>Reset</th>
 <th>Add</th><th>Remove</th><th>Rest</th><th>Truncate</th><th>Transpose</th><th>Transp. in key</th><th>Set root</th><th>Clock source</th>
+<th>USB C</th><th>USB A</th><th>DIN</th><th>Channel</th>
 </tr>
 </thead>
 <tr>
@@ -1506,6 +1677,7 @@ param_label = "error: unknown parameter";
 <td class='tc' colspan=6>Preset Items - Channel/CC</td>
 <td class='tc_a' colspan=7>Commands - Channel/CC</td>
 <td class='tc'>(for rate 0)</td>
+<td class='tc' colspan=4>MIDI out</td>
 </tr>
 <script>
 	for ( i = 1; i < 17; ++i ) {
@@ -1603,6 +1775,12 @@ param_label = "error: unknown parameter";
 			document.write( "<option value=" + j + ">Euclidean " + j + "</option>" );
 		}
 		document.write( "</select></td>" );
+		document.write( "<td><input type='checkbox' id='arp_out_" + i + "_c'></td>" );
+		document.write( "<td><input type='checkbox' id='arp_out_" + i + "_a'></td>" );
+		document.write( "<td><input type='checkbox' id='arp_out_" + i + "_d'></td>" );
+		document.write( "<td>" );
+    	writeMIDIChannelSelector( "arp_out_" + i + "_ch" );
+		document.write( "</td>" );
 		document.write( "</tr>" );
 	}
 </script>
@@ -2219,6 +2397,7 @@ param_label = "smoothing";
 
 <script>
 showHide( "glb_table", false );
+showHide( "glb_table2", false );
 showHide( "env_table", false );
 showHide( "arp_table", false );
 showHide( "clk_table", false );
@@ -2436,26 +2615,12 @@ function parseConfigDump( data ) {
 			ta.style.display = "none";
 		}
 	}
-			document.getElementById( "glb_tempo_ch" ).value = -1;
-			var ta = document.getElementById( "glb_tempo_cc" );
-			ta.value = -1;
-			ta.style.display = "none";
-			document.getElementById( "dispmode_ch" ).value = -1;
-			var ta = document.getElementById( "dispmode_cc" );
-			ta.value = -1;
-			ta.style.display = "none";
-			document.getElementById( "dispitem_ch" ).value = -1;
-			var ta = document.getElementById( "dispitem_cc" );
-			ta.value = -1;
-			ta.style.display = "none";
-			document.getElementById( "glb_swing_type_ch" ).value = -1;
-			var ta = document.getElementById( "glb_swing_type_cc" );
-			ta.value = -1;
-			ta.style.display = "none";
-			document.getElementById( "glb_swing_amount_ch" ).value = -1;
-			var ta = document.getElementById( "glb_swing_amount_cc" );
-			ta.value = -1;
-			ta.style.display = "none";
+	for ( j=0; j<global_mappable.length; ++j ) {
+		document.getElementById( global_mappable[j] + "_ch" ).value = -1;
+		var ta = document.getElementById( global_mappable[j] + "_cc" );
+		ta.value = -1;
+		ta.style.display = "none";
+	}
 	for ( var i = 0; i < 384; ++i ) {
 		var ch = data[c+0];
 		var cc = data[c+1];
@@ -2603,9 +2768,40 @@ function parseConfigDump( data ) {
 					document.getElementById( ccid ).value = cc;
 					changeMIDIChannel( id, ccid );
 				}
+				else if ( t0 == 76 ) {
+					var id = "nudgefaster_ch";
+					ccid = "nudgefaster_cc";
+					document.getElementById( id ).value = ch+1;
+					document.getElementById( ccid ).value = cc;
+					changeMIDIChannel( id, ccid );
+				}
+				else if ( t0 == 77 ) {
+					var id = "nudgeslower_ch";
+					ccid = "nudgeslower_cc";
+					document.getElementById( id ).value = ch+1;
+					document.getElementById( ccid ).value = cc;
+					changeMIDIChannel( id, ccid );
+				}
+				else if ( t0 == 78 ) {
+					var id = "inctempo_ch";
+					ccid = "inctempo_cc";
+					document.getElementById( id ).value = ch+1;
+					document.getElementById( ccid ).value = cc;
+					changeMIDIChannel( id, ccid );
+				}
+				else if ( t0 == 79 ) {
+					var id = "dectempo_ch";
+					ccid = "dectempo_cc";
+					document.getElementById( id ).value = ch+1;
+					document.getElementById( ccid ).value = cc;
+					changeMIDIChannel( id, ccid );
+				}
 			}
 			if ( ccid != "" ) {
-				document.getElementById( ccid + "_rel" ).checked = relative;
+				let rel = document.getElementById( ccid + "_rel" );
+				if ( rel != null ) {
+					rel.checked = relative;
+				}
 			}
 		}
 		c += 4;
@@ -2743,7 +2939,12 @@ function parseConfigDump( data ) {
 	// mcv2
 	for ( let i=1; i<=16; ++i ) {
 		document.getElementById( "arp_" + i + "_clk" ).value = data[c];	c += 1;
-		c += 3;
+		let m = data[c];	c += 1;
+		document.getElementById( "arp_out_" + i + "_ch" ).value = 1 + ( m & 0xf );
+		document.getElementById( "arp_out_" + i + "_c" ).checked = ( m >> 4 ) & 1;
+		document.getElementById( "arp_out_" + i + "_a" ).checked = ( m >> 5 ) & 1;
+		document.getElementById( "arp_out_" + i + "_d" ).checked = ( m >> 6 ) & 1;
+		c += 2;
 	}
 
 	// skip to addendum
@@ -2949,6 +3150,14 @@ if(!localStorage.getItem(fh2MIDIOutKey)) {  // No output stored
 } 
 else {
     fh2OutPortName = localStorage.getItem(fh2MIDIOutKey);
+}
+
+const themeKey = 'fh2Theme';
+if ( localStorage.getItem( themeKey ) ) {
+	if ( localStorage.getItem( themeKey ) == 1 ) {
+		document.getElementById( "theme" ).value = 1;
+		changeTheme();
+	}
 }
 
 if ( navigator.requestMIDIAccess ) {
