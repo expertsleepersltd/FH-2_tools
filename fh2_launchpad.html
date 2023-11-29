@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<head>
+
+<title>FH-2 Launchpad Tool</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Mono">
+
+<style>
+body {
+}
+button {
+}
+select {
+}
+tr.a {
+	background-color: #e0e0e0;
+}
+th {
+	background-color: #c0c0c0;
+	font-size: 80%;
+}
+td.tc {
+	text-align: center;
+	background-color: #c0c0c0;
+	font-size: 80%;
+}
+td.tc_a {
+	text-align: center;
+	background-color: #e0e0e0;
+	font-size: 80%;
+}
+input {
+}
+textarea {
+    font-family: 'PT Mono', monospace;
+	font-size: 11px;
+}
+body {
+	font-family: 'PT Sans', serif;
+	font-size: 16px;
+}
+button.big {
+	font-size: 120%;
+}
+input, select, button {
+	font-family: 'PT Sans', serif;
+	font-size: 11px;
+}
+div.small {
+	font-size: 80%;
+}
+table {
+	margin-bottom: 5px;
+}
+div.tc_c {
+	font-size: 80%;
+}
+table.logs {
+	margin: 0px;
+	border-spacing: 0px;
+}
+td.logs {
+	padding: 0px;
+}
+label.logs {
+	font-size: 80%;
+}
+.hidden {
+	position:absolute;
+	left:-10000px;
+	top:auto;
+	width:1px;
+	height:1px;
+	overflow:hidden;
+}
+p {
+	margin-block-start: 0em;
+	margin-block-end: 0em;
+}
+button.pad {
+	width:50px;
+	height:50px;
+}
+</style>
+
+<script>
+function changeTheme() {
+	let stylesheet = document.styleSheets[2];
+	if ( document.getElementById( "theme" ).value == 0 ) {
+		// body
+		stylesheet.cssRules[0].style.setProperty('background-color', 'white');
+		stylesheet.cssRules[0].style.setProperty('color', 'black');
+		// button
+		stylesheet.cssRules[1].style.setProperty('background-color', '#efefef');
+		stylesheet.cssRules[1].style.setProperty('color', 'black');
+		// select
+		stylesheet.cssRules[2].style.setProperty('background-color', 'white');
+		stylesheet.cssRules[2].style.setProperty('color', 'black');
+		// tr.a
+		stylesheet.cssRules[3].style.setProperty('background-color', '#e0e0e0');
+		// th
+		stylesheet.cssRules[4].style.setProperty('background-color', '#c0c0c0');
+		// td.tc
+		stylesheet.cssRules[5].style.setProperty('background-color', '#c0c0c0');
+		// td.tc_a
+		stylesheet.cssRules[6].style.setProperty('background-color', '#e0e0e0');
+		// input
+		stylesheet.cssRules[7].style.setProperty('background-color', 'white');
+		stylesheet.cssRules[7].style.setProperty('color', 'black');
+		// textarea
+		stylesheet.cssRules[8].style.setProperty('background-color', 'white');
+		stylesheet.cssRules[8].style.setProperty('color', 'black');
+	} else {
+		// body
+		stylesheet.cssRules[0].style.setProperty('background-color', 'black');
+		stylesheet.cssRules[0].style.setProperty('color', '#c0c0c0');
+		// button
+		stylesheet.cssRules[1].style.setProperty('background-color', 'black');
+		stylesheet.cssRules[1].style.setProperty('color', '#c0c0c0');
+		// select
+		stylesheet.cssRules[2].style.setProperty('background-color', 'black');
+		stylesheet.cssRules[2].style.setProperty('color', '#c0c0c0');
+		// tr.a
+		stylesheet.cssRules[3].style.setProperty('background-color', '#505050');
+		// th
+		stylesheet.cssRules[4].style.setProperty('background-color', '#505050');
+		// td.tc
+		stylesheet.cssRules[5].style.setProperty('background-color', '#505050');
+		// td.tc_a
+		stylesheet.cssRules[6].style.setProperty('background-color', '#606060');
+		// input
+		stylesheet.cssRules[7].style.setProperty('background-color', 'black');
+		stylesheet.cssRules[7].style.setProperty('color', '#c0c0c0');
+		// textarea
+		stylesheet.cssRules[8].style.setProperty('background-color', 'black');
+		stylesheet.cssRules[8].style.setProperty('color', '#c0c0c0');
+	}
+    localStorage.setItem( themeKey, document.getElementById( "theme" ).value );
+}
+function log( t ) {
+	var ta = document.getElementById( "log" );
+	var d = new Date();
+	var dd = d.toLocaleTimeString();
+	ta.value = ta.value + "\n" + dd + ": " + t;
+	ta.scrollTop = ta.scrollHeight;
+	return dd;
+}
+function status( t ) {
+    document.getElementById( "status" ).innerHTML = "Web MIDI status: " + t;
+}
+function nybbleChar( n ) {
+	if ( n >= 10 ) {
+		return String.fromCharCode( 'A'.charCodeAt( 0 ) + n - 10 );
+	}
+	return String.fromCharCode( '0'.charCodeAt( 0 ) + n );
+}
+function makeMsgSysEx() {
+	var d = [0xF0, 0x00, 0x21, 0x27, 0x2F, 0x02]
+	var len = d.length
+	var str = ""
+	for ( var i = 0; i < len; ++i ) {
+		str += String.fromCharCode( d[i] );
+	} 
+	var text = "Hello!\nThis message\nwas sent from\nthe config tool.";
+	str += text;
+	str += String.fromCharCode( 0xF7 );
+	return str;
+}
+function dumpSysex( data, id, prefix ) {
+	var len = data.length
+	var h = prefix
+	for ( var i = 0; i < len; ++i ) {
+		var b = data[ i ];
+		h += nybbleChar( b >> 4 );
+		h += nybbleChar( b & 0xf );
+		h += " ";
+		if ( ( i & 0xf ) === 0xf ) {
+			h += "\n";
+		}
+	} 
+	document.getElementById( id ).value = h;
+}
+</script>
+
+</head>
+
+<body>
+
+<div class="small">
+At the time of writing this will work only in Google's <a href="http://www.google.com/chrome/">Chrome</a> browser or in the <a href="https://www.opera.com">Opera</a> browser. Chrome may block SysEx access if you run this from a website, in which case download the html file locally and run it from there.
+</div>
+<div class="small" id="status"></div>
+<div class="small">
+This version is for FH-2 firmware v1.21 and above.
+<label for="theme">Theme: </label><select id="theme" onchange="changeTheme()"><option value=0>Light</option><option value=1>Dark</option></select>
+</div>
+<p>
+
+<label for="midioutput">Send to MIDI output port: </label><select id="midioutput" onchange="changeOutput()" accesskey='o'></select>
+<button onclick="sendMsg()">Send Msg</button>
+<br>
+<label for="midiinput">Listen on MIDI input port: </label><select id="midiinput" onchange='changeInput()' accesskey='i'></select>
+<button onclick="reqVersion()" accesskey='v'>Request FH-2 Version</button>
+<p>
+<textarea rows=5 cols=50 id="log" class="log" readOnly title="Log" accesskey='l'></textarea>
+<textarea rows=5 cols=48 name="text" id="txSysex" title="Transmitted SysEx"></textarea>
+<textarea rows=5 cols=48 name="text" id="rxSysex" title="Received SysEx"></textarea>
+<p>
+
+<script>
+// https://www.reddit.com/r/Novation/comments/vgitm0/reverse_engineering_launchpad_pro_color_to/
+const colours = [
+[ 0,0,0 ],
+[ 64,64,64 ],//[ 37,37,37 ],
+[ 143,143,143 ],
+[ 253,253,253 ],
+[ 255,101,92 ],
+[ 255,40,18 ],
+[ 110,10,3 ],
+[ 34,1,0 ],
+[ 255,199,124 ],
+[ 255,108,29 ],
+[ 110,40,6 ],
+[ 48,31,2 ],
+[ 255,248,77 ],
+[ 255,248,63 ],
+[ 108,105,21 ],
+[ 32,31,2 ],
+[ 148,247,81 ],
+[ 83,246,60 ],
+[ 30,104,20 ],
+[ 25,51,6 ],
+[ 69,247,81 ],
+[ 9,246,59 ],
+[ 2,104,19 ],
+[ 0,30,2 ],
+[ 67,247,104 ],
+[ 9,246,59 ],
+[ 2,104,19 ],
+[ 0,30,2 ],
+[ 64,248,151 ],
+[ 4,247,93 ],
+[ 1,104,34 ],
+[ 0,36,19 ],
+[ 57,248,193 ],
+[ 0,247,167 ],
+[ 0,105,67 ],
+[ 0,31,19 ],
+[ 63,204,252 ],
+[ 0,184,252 ],
+[ 0,82,99 ],
+[ 0,20,31 ],
+[ 73,158,251 ],
+[ 0,112,250 ],
+[ 0,41,107 ],
+[ 0,7,32 ],
+[ 79,105,250 ],
+[ 0,60,249 ],
+[ 0,20,108 ],
+[ 0,2,32 ],
+[ 146,106,250 ],
+[ 91,61,249 ],
+[ 23,24,119 ],
+[ 8,8,64 ],
+[ 255,112,250 ],
+[ 255,71,250 ],
+[ 109,25,107 ],
+[ 33,3,32 ],
+[ 255,105,149 ],
+[ 255,44,101 ],
+[ 110,13,36 ],
+[ 44,2,19 ],
+[ 255,51,19 ],
+[ 173,71,16 ],
+[ 142,99,21 ],
+[ 80,116,23 ],
+[ 1,70,10 ],
+[ 0,101,67 ],
+[ 0,103,143 ],
+[ 0,60,249 ],
+[ 0,85,95 ],
+[ 10,50,214 ],
+[ 143,143,143 ],
+[ 43,43,43 ],
+[ 255,40,18 ],
+[ 200,247,62 ],
+[ 186,235,58 ],
+[ 107,247,60 ],
+[ 3,149,32 ],
+[ 0,247,148 ],
+[ 0,184,252 ],
+[ 0,70,249 ],
+[ 56,61,249 ],
+[ 134,63,249 ],
+[ 194,52,142 ],
+[ 83,43,5 ],
+[ 255,97,26 ],
+[ 151,225,55 ],
+[ 122,247,60 ],
+[ 9,246,59 ],
+[ 9,246,59 ],
+[ 87,247,127 ],
+[ 0,249,213 ],
+[ 92,158,251 ],
+[ 40,104,207 ],
+[ 145,147,237 ],
+[ 218,70,250 ],
+[ 255,45,108 ],
+[ 255,144,37 ],
+[ 199,187,45 ],
+[ 158,247,61 ],
+[ 150,111,24 ],
+[ 74,52,6 ],
+[ 16,92,19 ],
+[ 0,97,72 ],
+[ 23,26,53 ],
+[ 13,47,107 ],
+[ 126,77,35 ],
+[ 188,25,10 ],
+[ 233,103,73 ],
+[ 229,125,31 ],
+[ 255,227,58 ],
+[ 171,225,55 ],
+[ 116,189,44 ],
+[ 35,38,63 ],
+[ 229,249,117 ],
+[ 136,249,199 ],
+[ 164,173,252 ],
+[ 154,128,250 ],
+[ 81,81,81 ],
+[ 135,135,135 ],
+[ 228,252,253 ],
+[ 181,24,9 ],
+[ 69,3,1 ],
+[ 6,211,50 ],
+[ 1,79,12 ],
+[ 199,187,45 ],
+[ 79,62,9 ],
+[ 195,112,26 ],
+[ 93,28,3 ],
+];
+function pad( id, dn ) {
+	let ccs = id.split( "p" );
+	for ( let cc of ccs.slice(1) ) {
+		let output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+		let arr = [ 0xF0, 0x00, 0x21, 0x27, 0x2F, 0x4C, cc, dn ? 127 : 0, 0xF7 ];
+		output.send( arr );
+		let dd = log( "sent pad " + cc + "," + dn + " to FH-2" );
+		dumpSysex( arr, "txSysex", dd+"\n" );
+	}
+}
+function parsePad( data ) {
+	for ( let i = 0; i < data.length; i += 2 ) {
+		let cc = data[i];
+		let c = colours[ data[i+1] ];
+		let rgb = "rgb("+c[0]+","+c[1]+","+c[2]+")";
+		let tot = c[0] + c[1] + c[2];
+		let text = tot > 200 ? "black" : "white";
+		document.getElementById( "p" + cc ).style = "background-color:"+rgb+";color:"+text;
+	}
+}
+function write_pad( ccs ) {
+	let id = "";
+	for ( let cc of ccs ) {
+		id += "p" + cc;
+	}
+	document.write( "<td><button id=" + id + " class='pad' onmousedown=pad('" + id + "',1) onmouseup=pad('" + id + "',0)>" );
+	document.write( ccs.join( " " ) );
+	document.write( "</button></td>" );
+	return id;
+}
+</script>
+
+<table>
+<tr>
+<td colspan=6></td>
+<script>
+id = write_pad( [ 97, 98 ] );
+document.getElementById( id ).innerHTML += "\na";
+</script>
+</tr>
+<script>
+for ( let y=9; y>=1; --y ) {
+	document.write( "<tr>" );
+	for ( let x=1; x<=9; ++x ) {
+		let cc = y * 10 + x;
+		if ( cc == 99 ) {
+			continue;
+		}
+		write_pad( [ cc ] );
+	}
+	document.write( "</tr>" );
+}
+document.onkeydown = function(e) {
+	if  ( e.which == 65 ) {
+		pad( "p97p98", 1 );
+	}
+}
+document.onkeyup = function(e) {
+	if  ( e.which == 65 ) {
+		pad( "p97p98", 0 );
+	}
+}
+</script>
+</table>
+
+<script>
+var midi, data;
+function onMIDISuccess(midiAccess) {
+	log( "midi access granted" );
+    status("OK");
+    midi = midiAccess;
+    midi.onstatechange = onStateChange;
+    onStateChange(null);
+}
+function onStateChange(e) {
+    var str = "";
+    var fh2 = -1;
+    var inputs = midi.inputs.values();
+    for ( var input = inputs.next(); input && !input.done; input = inputs.next() ) {
+	    str += "<option value='" + input.value.id + "'>" + input.value.name + "</option>";
+	    if ( input.value.name == fh2InPortName ) {
+		    fh2 = input.value.id;
+	    }
+    }
+    document.getElementById( "midiinput" ).innerHTML = str
+    if ( fh2 != -1 ) {
+	    document.getElementById( "midiinput" ).value = fh2;
+    }
+    str = "";
+    fh2 = -1;
+    var outputs = midi.outputs.values();
+    for ( var output = outputs.next(); output && !output.done; output = outputs.next() ) {
+	    str += "<option value='" + output.value.id + "'>" + output.value.name + "</option>";
+	    if ( output.value.name == fh2OutPortName ) {
+		    fh2 = output.value.id;
+			midi.outputs.get( output.value.id ).send( [ 0xFE ] );
+	    }
+    }
+    document.getElementById( "midioutput" ).innerHTML = str
+    if ( fh2 != -1 ) {
+	    document.getElementById( "midioutput" ).value = fh2;
+    }
+
+	setup_onmidimessage();
+}
+function onMIDIFailure(e) {
+	log( "midi access failure" );
+    status("No access to MIDI devices or your browser doesn't support WebMIDI API.");
+}
+function setup_onmidimessage() {
+    var inputs = midi.inputs.values();
+    if ( inputs.size == 0 ) {
+    	return;
+    }
+    for ( var input = inputs.next(); input && !input.done; input = inputs.next() ) {
+    	input.value.onmidimessage = "";
+    }
+	var input = midi.inputs.get( document.getElementById( "midiinput" ).value );
+	input.onmidimessage = onMIDIMessage;
+}
+function changeInput() {
+	setup_onmidimessage();
+	// Save the current port settings
+	let inputSelector = document.getElementById("midiinput"); 
+	let selectedPortName = inputSelector.options[inputSelector.selectedIndex].text;
+    localStorage.setItem(fh2MIDIInKey, selectedPortName);
+}
+function changeOutput() {
+	var outputSelector = document.getElementById("midioutput"); 
+	var selectedPortName = outputSelector.options[outputSelector.selectedIndex].text;
+    localStorage.setItem(fh2MIDIOutKey, selectedPortName);
+}
+function onMIDIMessage(message) {
+    data = message.data;
+    var header = [ 240, 0, 33, 39, 47 ];
+    for ( var i=0; i<5; ++i ) {
+    	if ( header[i] != data[i] ) {
+    		return;
+    	}
+    }
+//	let dd = log( "received sysex (" + data.length + " bytes)" );
+//	dumpSysex( data, "rxSysex", dd+"\n" );
+	if ( data[5] == 0x32 ) {
+		// version string
+	    var str = String.fromCharCode.apply( null, data.slice( 6, -1 ) );
+		document.getElementById( "rxSysex" ).value += ( "\n-----\n" + str );
+	}
+	else if ( data[5] == 0x4C ) {
+		// pad
+		parsePad( data.slice( 6, -1 ) );
+	}
+}
+function sendMsg() {
+	var str = makeMsgSysEx();
+	var arr = new Uint8Array( str.length );
+	for ( var i=0; i<str.length; ++i ) {
+		arr[i] = str.charCodeAt( i );
+	}
+	var output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	output.send( arr );
+	var dd = log( "sent sysex (" + str.length + " bytes)" );
+	dumpSysex( arr, "txSysex", dd+"\n" );
+}
+function reqVersion() {
+	let output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	let arr = [ 0xF0, 0x00, 0x21, 0x27, 0x2F, 0x22, 0xF7 ];
+	output.send( arr );
+	let dd = log( "sent version request to FH-2" );
+	dumpSysex( arr, "txSysex", dd+"\n" );
+}
+
+const fh2MIDIInKey = "fh2MIDIInKey";
+const fh2MIDIOutKey = "fh2MIDIOutKey";
+const defaultFH2PortName = "FH-2";
+var fh2InPortName = defaultFH2PortName;
+var fh2OutPortName = defaultFH2PortName;
+
+if(!localStorage.getItem(fh2MIDIInKey)) {  // No input stored
+    localStorage.setItem(fh2MIDIInKey, defaultFH2PortName);
+} 
+else {
+    fh2InPortName = localStorage.getItem(fh2MIDIInKey);
+}
+
+if(!localStorage.getItem(fh2MIDIOutKey)) {  // No output stored
+    localStorage.setItem(fh2MIDIOutKey, defaultFH2PortName);
+} 
+else {
+    fh2OutPortName = localStorage.getItem(fh2MIDIOutKey);
+}
+
+const themeKey = 'fh2Theme';
+if ( localStorage.getItem( themeKey ) ) {
+	if ( localStorage.getItem( themeKey ) == 1 ) {
+		document.getElementById( "theme" ).value = 1;
+		changeTheme();
+	}
+}
+
+if ( navigator.requestMIDIAccess ) {
+    navigator.requestMIDIAccess ( {
+        sysex: true
+    } ).then(onMIDISuccess, onMIDIFailure);
+} else {
+    status("No MIDI support in your browser.");
+}
+
+</script>
+
+</body>
