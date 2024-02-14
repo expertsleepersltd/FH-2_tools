@@ -65,6 +65,9 @@ table.logs {
 	margin: 0px;
 	border-spacing: 0px;
 }
+table.nested {
+	margin: 0px;
+}
 td.logs {
 	padding: 0px;
 }
@@ -206,9 +209,9 @@ function makeSysExMcv( data, c, m ) {
 	// vel gate output
 	data[c] = document.getElementById( "mcv_VVG_" + m ).checked;	c += 1;
 	// vel output
-	data[c] = document.getElementById( "mcv_VV_" + m ).checked;	c += 1;
+	data[c] = document.getElementById( "mcv_VV_" + m ).value;	c += 1;
 	// rel vel output
-	data[c] = document.getElementById( "mcv_VR_" + m ).checked;	c += 1;
+	data[c] = document.getElementById( "mcv_VR_" + m ).value;	c += 1;
 	// trigger output
 	data[c] = document.getElementById( "mcv_VT_" + m ).checked;	c += 1;
 	// voice pressure output
@@ -330,6 +333,28 @@ function makeSysExMappings( data, c ) {
 			data[c+0] = 0x30 | ch;
 			data[c+1] = cc;
 			data[c+2] = 10 + re;
+			data[c+3] = (j-1)*8 + i;
+			c += 4;
+		
+			map += 1;
+			if ( map >= 384 ) {
+				return data;
+			}
+		}
+	}
+
+	for ( j=1; j<17; ++j ) {
+		var id = "srr_" + j + "_";
+		for ( i = 0; i < srrControls.length; ++i ) {
+			var ch = document.getElementById( id + srrControls[i] + "_ch" ).value - 1;
+			var cc = document.getElementById( id + srrControls[i] + "_cc" ).value;
+			let re = document.getElementById( id + srrControls[i] + "_cc" + "_rel" ).checked ? 32 : 0;
+			if ( ch < 0 || cc < 0 ) {
+				continue;
+			}
+			data[c+0] = 0x30 | ch;
+			data[c+1] = cc;
+			data[c+2] = 15 + re;
 			data[c+3] = (j-1)*8 + i;
 			c += 4;
 		
@@ -614,7 +639,7 @@ function makeSysEx() {
 	} 
 	var c = len;
 	// version
-	arr[c] = 10;	 c += 1;
+	arr[c] = 11;	 c += 1;
 	arr[c] = 0;		 c += 1;
 	arr[c] = 0;		 c += 1;
 	arr[c] = 0;		 c += 1;
@@ -784,6 +809,7 @@ function makeSysEx() {
 			arr[c] = document.getElementById( "seqd_" + i + "_n_" + j ).value;	c += 1;
 		}
 	}
+	// midi/cv 2
 	for ( let i=1; i<=16; ++i ) {
 		arr[c] = document.getElementById( "arp_" + i + "_clk" ).value;	c += 1;
 		let m = document.getElementById( "arp_out_" + i + "_ch" ).value - 1;
@@ -795,6 +821,33 @@ function makeSysEx() {
 			m |= (1<<6);
 		arr[c] = m;		c += 1;
 		c += 2;
+	}
+	// srr outputs
+	for ( var i = 1; i < 17; ++i ) {
+		arr[c] = document.getElementById( "srr_output_" + i ).value - (-1);
+		c += 1;
+		let v = document.getElementById( "srr_change_" + i ).value;
+		arr[c] = v & 0x7f;	c += 1;
+		v = document.getElementById( "srr_trigger_" + i ).value;
+		arr[c] = v & 0x7f;	c += 1;
+		arr[c] = document.getElementById( "srr_clk_" + i ).value;
+		c += 1;
+		v = document.getElementById( "srr_nch_" + i ).value;
+		if ( v < 0 ) {
+			v = 0;
+		}
+		arr[c] = v; 	c += 1;
+		arr[c] = document.getElementById( "srr_ch_" + i ).value - 1;	c += 1;
+		let outs = 0;
+		if ( document.getElementById( "srr_int_" + i ).checked )
+			outs |= (1<<0);
+		if ( document.getElementById( "srr_c_" + i ).checked )
+			outs |= (1<<1);
+		if ( document.getElementById( "srr_a_" + i ).checked )
+			outs |= (1<<2);
+		if ( document.getElementById( "srr_d_" + i ).checked )
+			outs |= (1<<3);
+    	arr[c] = outs;														c += 1;
 	}
 
 	// pad to 4096 bytes
@@ -810,6 +863,12 @@ function makeSysEx() {
 	for ( var i = 1; i < 17; ++i ) {
 		var v = document.getElementById( "euc_offoutput_" + i ).value;
 		arr[c] = ( v & 0x80 ) ? 1 : 0;	c += 1;
+	}
+	for ( var i = 1; i < 17; ++i ) {
+		let h = document.getElementById( "srr_change_" + i ).value;
+		let t = document.getElementById( "srr_trigger_" + i ).value;
+		arr[c] = ( ( h & 0x80 ) ? 1 : 0 ) | ( ( t & 0x80 ) ? 2 : 0 );
+		c += 1;
 	}
 
 	arr[c] = 0xF7; c += 1;
@@ -848,12 +907,13 @@ function dumpSysex( data, id, prefix ) {
 var arpControls = [ "M", "R", "G", "L", "T", "P", "S", "E" ];
 var arpControlsUI = [ "P", "E" ];
 var arpControlsUI2 = [ "M", "R", "G", "L", "T", "S" ];
-var seqControls = [ "T", "S", "G" ];
-var dseqControls = [ "S" ];
-var dseqlControls = [ "T", "S" ];
+var seqControls = [ "T", "S", "G", "P" ];
+var dseqControls = [ "S", "P" ];
+var dseqlControls = [ "T", "S", "P" ];
 var mcvMappable2Controls = [ "A", "D", "S", "R", "N", "P", "V", "RND" ];
 var mcvCommands = [ "A", "R", "T", "N", "P", "K", "O" ];
 var eucControls = [ "P", "S", "R", "T", "G", "A", "E" ];
+var srrControls = [ "D", "L", "R", "T", "A", "S", "K", "G" ];
 var menus = [ 'C', 'D', 'E' ];
 var menuCCs = [ 80, 88, 96 ];
 var unhandled = [];
@@ -1085,7 +1145,7 @@ At the time of writing this will work only in Google's <a href="http://www.googl
 </div>
 <div class="small" id="status"></div>
 <div class="small">
-This version is for FH-2 firmware v1.21 and above.
+This version is for FH-2 firmware v1.23 and above.
 <label for="theme">Theme: </label><select id="theme" onchange="changeTheme()"><option value=0>Light</option><option value=1>Dark</option></select>
 </div>
 <p>
@@ -1153,6 +1213,8 @@ This version is for FH-2 firmware v1.21 and above.
 <input type='checkbox' id='kbd_lbl' onclick='showHide("kbd_table",this.checked)' accesskey='y'>Show HID Keyboard</input>
 <label class = 'hidden' for='cvm_lbl'>Show CV/MIDI</label>
 <input type='checkbox' id='cvm_lbl' onclick='showHide("cvm_table",this.checked)' accesskey='c'>Show CV/MIDI</input>
+<label class = 'hidden' for='srr_lbl'>Show SR Random</label>
+<input type='checkbox' id='srr_lbl' onclick='showHide("srr_table",this.checked)' accesskey='s'>Show SR Random</input>
 
 <table id="glb_table"><caption class="hidden">Globals</caption>
 <thead>
@@ -1392,6 +1454,7 @@ document.getElementById( "glb_triglen" ).value = 50;
 		document.write( "</td>" );
 
 		var c = [ "C", "G", "VG", "V", "R", "T", "E", "P", "RND" ];
+		let type = [ 0, 0, 0, 1, 1, 0, 0, 0, 0 ];
 		var k;
 
 		for ( k=0; k<9; ++k ) {
@@ -1440,7 +1503,11 @@ document.getElementById( "glb_triglen" ).value = 50;
 
 			id = "mcv_V" + c[k] + "_" + i;
 			document.write( "<td><label class='hidden' for='" + id + "'>" + param_label + " (Converter " + i + ")</label>");
-			document.write( "<input type='checkbox' id='" + id + "'></td>" );
+			if ( type[k] ) {
+				document.write( "<select id='" + id + "'><option value=0>--</option><option value=1>On</option><option value=2>Inv</option></select></td>" );
+			} else {
+				document.write( "<input type='checkbox' id='" + id + "'></td>" );
+			}
 		}
 
 		id = "mcv_VY_" + i;
@@ -1890,7 +1957,7 @@ param_label = "error: unknown parameter";
 <tr><td></td><th>Output</th><th>Off Output</th>
 <th>Pulses</th><th>Steps</th><th>Rotation</th><th>Rate</th><th>Gate Length</th><th>Accent Rate</th><th>Reset</th>
 </tr>
-<tr><td></td><td></td><td></td>
+<tr><th></th><th colspan=2></th>
 <td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td>
 <td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td>
 </tr>
@@ -1955,6 +2022,73 @@ param_label = "error: unknown parameter";
 </script>
 </table>
 
+<table id="srr_table"><caption class="hidden">Shift Register Random</caption>
+<tr>
+<th colspan=19>Shift Register Random</th>
+</tr>
+<tr><td></td><th colspan=3>Outputs</th><th class='tc'>Notes input</th><th class='tc' colspan=5>MIDI output</th><th>Clock source</th>
+<th>Direction</th><th>Length</th><th>Randomness</th><th>Rate</th><th>Attenuator</th><th>Scale</th><th>Key</th>
+<th>Gate Length</th>
+</tr>
+<tr><th></th><th>CV</th><th>Change</th><th>Trigger</th><th>Channel</th><th>Channel</th><th>Internal</th><th>USB C</th><th>USB A</th><th>DIN</th><th>(for rate 0)</th>
+<td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td>
+<td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td>
+</tr>
+<script>
+	for ( i = 1; i < 17; ++i ) {
+		var cl = ( i & 1 ) ? "a" : "b";
+		document.write( "<tr class=" + cl + "><td>" + i + "</td>" );
+		id = "srr_output_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Output (Random " + i + ")</label>");
+		writeChannelSelector( id, true );
+		document.write( "</td>" );
+		document.getElementById( id ).value = i - 1;
+
+		id = "srr_change_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Change output (Random " + i + ")</label>");
+		writeGateChannelSelector( id, true );
+		document.write( "</td>" );
+
+		id = "srr_trigger_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Trigger output (Random " + i + ")</label>");
+		writeGateChannelSelector( id, true );
+		document.write( "</td>" );
+
+		document.write( "<td>" );
+    	writeMIDIChannelSelector( "srr_nch_" + i, true, null );
+		document.write( "</td>" );
+
+		document.write( "<td>" );
+    	writeMIDIChannelSelector( "srr_ch_" + i, false, null );
+		document.write( "</td>" );
+		document.write( "<td><input type='checkbox' id='srr_int_" + i + "'></td>" );
+		document.write( "<td><input type='checkbox' id='srr_c_" + i + "'></td>" );
+		document.write( "<td><input type='checkbox' id='srr_a_" + i + "'></td>" );
+		document.write( "<td><input type='checkbox' id='srr_d_" + i + "'></td>" );
+
+		id = "srr_clk_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Random " + (i + 1) + " external clock source</label>" );
+		document.write( "<select id='" + id + "'>" );
+		document.write( "<option value=0>External</option>" );
+		for ( let j=1; j<=16; ++j ) {
+			document.write( "<option value=" + j + ">Euclidean " + j + "</option>" );
+		}
+		document.write( "</select></td>" );
+
+		for ( var j=0; j<srrControls.length; ++j ) {
+			var param_label = "";
+			var chid = "srr_" + i + "_" + srrControls[j] + "_ch";
+			var ccid = "srr_" + i + "_" + srrControls[j] + "_cc";
+			document.write( "<td><label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (Random " + i + ")</label>");
+			writeMIDIChannelSelector( chid, true, ccid );
+			document.write( "<label class='hidden' for='" + ccid  + "'>" + param_label + "MIDI CC (Random " + i + ")</label>");
+			writeMIDICCSelector( ccid );
+			document.write( "</td>" );
+		}
+	}
+</script>
+</table>
+
 <table id="seq_table"><caption class="hidden">Sequencers</caption>
 <tr>
 <th colspan=7>Sequencers</th>
@@ -2010,10 +2144,11 @@ param_label = "error: unknown parameter";
 
 <table id="seqm_table"><caption class="hidden">Sequencer mappings</caption>
 <tr>
-<th colspan=18>Sequencer mappings</th>
+<th>Sequencer mappings</th>
 </tr>
-<tr><td></td><th>Rate</th><th>Reset</th><th>Gate Length</th></tr>
-<tr><th>Note sequencers</th><th colspan=3>Channel/CC</th></tr>
+<tr><td><table class='nested'>
+<tr><td></td><th>Rate</th><th>Reset</th><th>Gate Length</th><th>Position</th></tr>
+<tr><th>Note sequencers</th><th colspan=4>Channel/CC</th></tr>
 <script>
 	var seqControlLabels = [ "rate", "reset", "gate length" ];
 	for ( let i=0; i<4; ++i ) {
@@ -2029,18 +2164,19 @@ param_label = "error: unknown parameter";
 			writeMIDICCSelector( ccid );
 			document.write( "</td>" );
 		}
-		document.write( "<td colspan=14></td>" );
 		document.write( "</tr>" );
 	}
 </script>
-<tr><td></td><th>Global</th>
+</table></td></tr>
+<tr><td><table class='nested'>
+<tr><td></td><th colspan=2>Global</th>
 <script>
     for ( let j=0; j<8; ++j ) {
-    	document.write( "<th colspan=2>Lane " + (1+j) + "</th>" );
+    	document.write( "<th colspan=3>Lane " + (1+j) + "</th>" );
     }
 </script>
-<tr><th>Drum sequencers</th><th>Reset</th>
-<th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th><th>Rate</th><th>Reset</th>
+<tr><th>Drum sequencers</th><th>Reset</th><th>Position</th>
+<th>Rate</th><th>Reset</th><th>Position</th><th>Rate</th><th>Reset</th><th>Position</th><th>Rate</th><th>Reset</th><th>Position</th><th>Rate</th><th>Reset</th><th>Position</th><th>Rate</th><th>Reset</th><th>Position</th><th>Rate</th><th>Reset</th><th>Position</th><th>Rate</th><th>Reset</th><th>Position</th><th>Rate</th><th>Reset</th><th>Position</th>
 </tr>
 <script>
 	var dseqControlLabels = [ "reset" ];
@@ -2073,6 +2209,7 @@ param_label = "error: unknown parameter";
 		document.write( "</tr>" );
 	}
 </script>
+</table></td></tr>
 </table>
 
 <script>
@@ -2403,6 +2540,7 @@ showHide( "arp_table", false );
 showHide( "clk_table", false );
 showHide( "trg_table", false );
 showHide( "euc_table", false );
+showHide( "srr_table", false );
 showHide( "seq_table", false );
 showHide( "seqm_table", false );
 showHide( "hid_table", false );
@@ -2469,9 +2607,9 @@ function parseMcv( data, c, m ) {
 	// vel gate output
 	document.getElementById( "mcv_VVG_" + m ).checked = data[c];	c += 1;
 	// vel output
-	document.getElementById( "mcv_VV_" + m ).checked = data[c];	c += 1;
+	document.getElementById( "mcv_VV_" + m ).value = data[c];	c += 1;
 	// rel vel output
-	document.getElementById( "mcv_VR_" + m ).checked = data[c];	c += 1;
+	document.getElementById( "mcv_VR_" + m ).value = data[c];	c += 1;
 	// trigger output
 	document.getElementById( "mcv_VT_" + m ).checked = data[c];	c += 1;
 	// voice pressure output
@@ -2505,7 +2643,7 @@ function parseConfigDump( data ) {
 	var c = 0;
 	// version
 	var version = ( data[c] ) | ( data[c+1] << 8 ) | ( data[c+2] << 16 ) | ( data[c+3] << 24 )
-	if ( version != 10 )
+	if ( version != 11 )
 	{
 		alert( "This version of the tool does not match the FH-2 firmware." );
 		return;
@@ -2580,6 +2718,16 @@ function parseConfigDump( data ) {
 		for ( i = 0; i < eucControls.length; ++i ) {
 			var ccid = id + eucControls[i] + "_cc";
 			document.getElementById( id + eucControls[i] + "_ch" ).value = -1;
+			var ta = document.getElementById( ccid );
+			ta.value = -1;
+			ta.style.display = "none";
+		}
+	}
+	for ( j=1; j<17; ++j ) {
+		var id = "srr_" + j + "_";
+		for ( i = 0; i < srrControls.length; ++i ) {
+			var ccid = id + srrControls[i] + "_cc";
+			document.getElementById( id + srrControls[i] + "_ch" ).value = -1;
 			var ta = document.getElementById( ccid );
 			ta.value = -1;
 			ta.style.display = "none";
@@ -2728,6 +2876,18 @@ function parseConfigDump( data ) {
 						let id = "dseq0_" + j + "_";
 						ccid = id + dseqlControls[k] + "_cc";
 						id = id + dseqlControls[k] + "_ch";
+						document.getElementById( id ).value = ch+1;
+						document.getElementById( ccid ).value = cc;
+						changeMIDIChannel( id, ccid );
+					}
+				}
+				else if ( t0 == 15 ) {
+					var j = ( t1 >> 3 ) + 1;
+					var k = t1 & 7;
+					if ( k >= 0 && k < srrControls.length ) {
+						var id = "srr_" + j + "_";
+						ccid = id + srrControls[k] + "_cc";
+						id = id + srrControls[k] + "_ch";
 						document.getElementById( id ).value = ch+1;
 						document.getElementById( ccid ).value = cc;
 						changeMIDIChannel( id, ccid );
@@ -2946,6 +3106,21 @@ function parseConfigDump( data ) {
 		document.getElementById( "arp_out_" + i + "_d" ).checked = ( m >> 6 ) & 1;
 		c += 2;
 	}
+	// srr outputs
+	for ( var i = 1; i < 17; ++i ) {
+		document.getElementById( "srr_output_" + i ).value = data[c] - 1;	c += 1;
+		document.getElementById( "srr_change_" + i ).value = data[c];		c += 1;
+		document.getElementById( "srr_trigger_" + i ).value = data[c];		c += 1;
+		document.getElementById( "srr_clk_" + i ).value = data[c];			c += 1;
+		let v = data[c];													c += 1;
+		document.getElementById( "srr_nch_" + i ).value = v > 0 ? v : -1;
+		document.getElementById( "srr_ch_" + i ).value = data[c]+1;			c += 1;
+		let outs = data[c];													c += 1;
+		document.getElementById( "srr_int_" + i ).checked = ( outs >> 0 ) & 1;
+		document.getElementById( "srr_c_" + i ).checked = ( outs >> 1 ) & 1;
+		document.getElementById( "srr_a_" + i ).checked = ( outs >> 2 ) & 1;
+		document.getElementById( "srr_d_" + i ).checked = ( outs >> 3 ) & 1;
+	}
 
 	// skip to addendum
 	c = 4096;
@@ -2958,6 +3133,15 @@ function parseConfigDump( data ) {
 	for ( var i = 1; i < 17; ++i ) {
 		if ( data[c] ) {
 			document.getElementById( "euc_offoutput_" + i ).value = -1;
+		}
+		c += 1;
+	}
+	for ( var i = 1; i < 17; ++i ) {
+		if ( data[c] & 1 ) {
+			document.getElementById( "srr_change_" + i ).value = -1;
+		}
+		if ( data[c] & 2 ) {
+			document.getElementById( "srr_trigger_" + i ).value = -1;
 		}
 		c += 1;
 	}
