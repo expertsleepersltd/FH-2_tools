@@ -500,16 +500,19 @@ function showHide( id, show ) {
 	ta.style.display = show ? "inline" : "none";
 }
 
-function writeValueSelectTdWithMax( id, label, max ) {
+function writeValueSelectTdWithRange( id, label, min, max ) {
 	document.write( '<td><label class="hidden" for="' + id + '">' + label + '</label>' );
 	document.write( '<select id="' + id + '">' );
-	for ( let i=0; i<=max; ++i ) {
+	for ( let i=min; i<=max; ++i ) {
 		document.write( '<option value=' + i + '>' + i + '</option>' );
     }
 	document.write( '</select></td>' );
 }
+function writeValueSelectTdWithMax( id, label, max ) {
+	writeValueSelectTdWithRange( id, label, 0, max );
+}
 function writeValueSelectTd( id, label ) {
-	writeValueSelectTdWithMax( id, label, 127 );
+	writeValueSelectTdWithRange( id, label, 0, 127 );
 }
 
 function writeCheckboxTd( id, label ) {
@@ -815,6 +818,10 @@ param_label = "error: unknown parameter";
 		var cl = ( i & 1 ) ? "b" : "a";
 		document.write( "<tr class=" + cl + "><td>" + (i+1) + "</td>" );
 		id = "euc_output_" + i;
+
+		var eucMin = [ 0, 1, 0, 0, 0, 0, 0 ];
+		var eucMax = [ 32, 32, 32, 127, 127, 127, 32 ];
+
 		for ( var j=0; j<eucControls.length; ++j ) {
 			var param_label;
 			var id = "euc_" + i + "_" + eucControls[j];
@@ -852,7 +859,7 @@ else
 param_label = "error: unknown parameter";
 }
 
-			writeValueSelectTd( id, param_label );
+			writeValueSelectTdWithRange( id, param_label, eucMin[j], eucMax[j] );
 		}
 	}
 </script>
@@ -871,10 +878,13 @@ param_label = "error: unknown parameter";
 		var cl = ( i & 1 ) ? "b" : "a";
 		document.write( "<tr class=" + cl + "><td>" + i + "</td>" );
 
-		for ( var j=0; j<srrControls.length; ++j ) {
-			var param_label = "";
-			var id = "srr_" + i + "_" + srrControls[j];
-			writeValueSelectTd( id, param_label );
+		var srrMin = [ 0, 1, 0, 0, 0, 0, 0, 0 ];
+		var srrMax = [ 2, 32, 127, 127, 127, 18, 24, 127 ];
+
+		for ( let j=0; j<srrControls.length; ++j ) {
+			let param_label = "";
+			let id = "srr_" + i + "_" + srrControls[j];
+			writeValueSelectTdWithRange( id, param_label, srrMin[j], srrMax[j] );
 		}
 	}
 </script>
