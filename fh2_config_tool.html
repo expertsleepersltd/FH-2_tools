@@ -319,6 +319,25 @@ function makeSysExMappings( data, c ) {
 				return data;
 			}
 		}
+		var id = "mcvm3_" + j + "_";
+		for ( i = 0; i < mcvMappable3Controls.length; ++i ) {
+			var ch = document.getElementById( id + mcvMappable3Controls[i] + "_ch" ).value - 1;
+			var cc = document.getElementById( id + mcvMappable3Controls[i] + "_cc" ).value;
+			let re = document.getElementById( id + mcvMappable3Controls[i] + "_cc" + "_rel" ).checked ? 32 : 0;
+			if ( ch < 0 || cc < 0 ) {
+				continue;
+			}
+			data[c+0] = 0x30 | ch;
+			data[c+1] = cc;
+			data[c+2] = 16 + re;
+			data[c+3] = (j-1)*8 + i;
+			c += 4;
+			
+			map += 1;
+			if ( map >= 384 ) {
+				return data;
+			}
+		}
 	}
 
 	for ( j=1; j<17; ++j ) {
@@ -911,6 +930,7 @@ var seqControls = [ "T", "S", "G", "P" ];
 var dseqControls = [ "S", "P" ];
 var dseqlControls = [ "T", "S", "P" ];
 var mcvMappable2Controls = [ "A", "D", "S", "R", "N", "P", "V", "RND" ];
+var mcvMappable3Controls = [ "AS", "DS", "RS" ];
 var mcvCommands = [ "A", "R", "T", "N", "P", "K", "O" ];
 var eucControls = [ "P", "S", "R", "T", "G", "A", "E" ];
 var srrControls = [ "D", "L", "R", "T", "A", "S", "K", "G" ];
@@ -1145,7 +1165,7 @@ At the time of writing this will work only in Google's <a href="http://www.googl
 </div>
 <div class="small" id="status"></div>
 <div class="small">
-This version is for FH-2 firmware v1.23 and above.
+This version is for FH-2 firmware v1.24 and above.
 <label for="theme">Theme: </label><select id="theme" onchange="changeTheme()"><option value=0>Light</option><option value=1>Dark</option></select>
 </div>
 <p>
@@ -1153,6 +1173,9 @@ This version is for FH-2 firmware v1.23 and above.
 <button class="big" accesskey='s' onclick="send()">Send to FH-2</button>
 <label for="midioutput">Send to MIDI output port: </label><select id="midioutput" onchange="changeOutput()" accesskey='o'></select>
 <button onclick="sendMsg()">Send Msg</button>
+<!--
+<button class="big" onclick="saveToFlash()">Save to flash</button>
+-->
 <br>
 <button class="big" accesskey='u' onclick="request()">Upload from FH-2</button>
 <label for="midiinput">Listen on MIDI input port: </label><select id="midiinput" onchange='changeInput()' accesskey='i'></select>
@@ -1632,6 +1655,7 @@ document.getElementById( "glb_triglen" ).value = 50;
 <th>Transpose</th>
 <th colspan=7>Envelopes</th>
 <th>Random</th>
+<th colspan=3>Envelope shapes</th>
 </tr>
 <tr>
 <th></th>
@@ -1639,11 +1663,12 @@ document.getElementById( "glb_triglen" ).value = 50;
 <th></th>
 <th>Attack</th><th>Decay</th><th>Sustain</th><th>Release</th><th>Range</th><th>Depth</th><th>Velocity Depth</th>
 <th></th>
+<th>Attack</th><th>Decay</th><th>Release</th>
 </tr>
 </thead>
 <tr>
 <td></td>
-<td class='tc' colspan=10>Preset Items - Channel/CC</td>
+<td class='tc' colspan=13>Preset Items - Channel/CC</td>
 </tr>
 <script>
 	for ( i = 1; i < 17; ++i ) {
@@ -1710,6 +1735,34 @@ param_label = "env. velocity depth";
 else if (j == 7)
 {
 param_label = "random depth";
+}
+else
+{
+param_label = "error: unknown parameter";
+}
+
+			document.write( "<td><label class='hidden' for='" + chid + "'>" + param_label + " MIDI channel (Converter " + i + ")</label>");
+			writeMIDIChannelSelector( chid, true, ccid );
+			document.write( "<label class='hidden' for='" + ccid + "'>" + param_label + " MIDI CC (Converter " + i + ")</label>");
+			writeMIDICCSelector( ccid );
+			document.write( "</td>" );
+		}
+		for ( var j=0; j<mcvMappable3Controls.length; ++j ) {
+			var chid = "mcvm3_" + i + "_" + mcvMappable3Controls[j] + "_ch";
+			var ccid = "mcvm3_" + i + "_" + mcvMappable3Controls[j] + "_cc";
+			var param_label;
+
+if (j == 0)
+{
+param_label = "attack shape";
+}
+else if (j == 1)
+{
+param_label = "decay shape";
+}
+else if (j == 2)
+{
+param_label = "release shape";
 }
 else
 {
@@ -2712,6 +2765,14 @@ function parseConfigDump( data ) {
 			ta.value = -1;
 			ta.style.display = "none";
 		}
+		var id = "mcvm3_" + j + "_";
+		for ( i = 0; i < mcvMappable3Controls.length; ++i ) {
+			var ccid = id + mcvMappable3Controls[i] + "_cc";
+			document.getElementById( id + mcvMappable3Controls[i] + "_ch" ).value = -1;
+			var ta = document.getElementById( ccid );
+			ta.value = -1;
+			ta.style.display = "none";
+		}
 	}
 	for ( j=1; j<17; ++j ) {
 		var id = "euc_" + j + "_";
@@ -2888,6 +2949,18 @@ function parseConfigDump( data ) {
 						var id = "srr_" + j + "_";
 						ccid = id + srrControls[k] + "_cc";
 						id = id + srrControls[k] + "_ch";
+						document.getElementById( id ).value = ch+1;
+						document.getElementById( ccid ).value = cc;
+						changeMIDIChannel( id, ccid );
+					}
+				}
+				else if ( t0 == 16 ) {
+					var j = ( t1 >> 3 ) + 1;
+					var k = t1 & 7;
+					if ( k >= 0 && k < mcvMappable3Controls.length ) {
+						var id = "mcvm3_" + j + "_";
+						ccid = id + mcvMappable3Controls[k] + "_cc";
+						id = id + mcvMappable3Controls[k] + "_ch";
 						document.getElementById( id ).value = ch+1;
 						document.getElementById( ccid ).value = cc;
 						changeMIDIChannel( id, ccid );
@@ -3240,6 +3313,13 @@ function send() {
 	let output = midi.outputs.get( document.getElementById( "midioutput" ).value );
 	output.send( arr );
 	let dd = log( "sent sysex (" + arr.length + " bytes)" );
+	dumpSysex( arr, "txSysex", dd+"\n" );
+}
+function saveToFlash() {
+	let output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	let arr = [ 0xF0, 0x00, 0x21, 0x27, 0x2F, 0x18, 0x00, 0xF7 ];
+	output.send( arr );
+	let dd = log( "sent save to flash request to FH-2" );
 	dumpSysex( arr, "txSysex", dd+"\n" );
 }
 function sendMsg() {

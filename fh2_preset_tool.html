@@ -208,7 +208,7 @@ function makeSysEx() {
 	} 
 	var c = len;
 	// version
-	arr[c] = 7;	 	 c += 1;
+	arr[c] = 8;	 	 c += 1;
 	arr[c] = 0;		 c += 1;
 	arr[c] = 0;		 c += 1;
 	arr[c] = 0;		 c += 1;
@@ -398,6 +398,13 @@ function makeSysEx() {
 	arr[c] = document.getElementById( "swing_pos2" ).value;	c += 1;
 	arr[c] = document.getElementById( "swing_pos3" ).value;	c += 1;
 	c += 1;
+	// MCV mappable 3
+	for ( i = 0; i < 16; ++i ) {
+		arr[c] = document.getElementById( "mcvm3_" + i + "_AS" ).value;	c += 1;
+		arr[c] = document.getElementById( "mcvm3_" + i + "_DS" ).value;	c += 1;
+		arr[c] = document.getElementById( "mcvm3_" + i + "_RS" ).value;	c += 1;
+		c += 5;
+	}
 
 	// pad to 4096 bytes
 	while ( ( c - len ) < 4096 ) {
@@ -484,6 +491,7 @@ var arpControls = [ "M", "R", "G", "L", "T", "P", "S", "E" ];
 var arpControlsUI = [ "P", "E" ];
 var arpControlsUI2 = [ "M", "R", "G", "L", "T", "S" ];
 var mcvMappable2Controls = [ "A", "D", "S", "R", "N", "P", "V", "RND" ];
+var mcvMappable3Controls = [ "AS", "DS", "RS" ];
 var eucControls = [ "P", "S", "R", "T", "G", "A", "E" ];
 var srrControls = [ "D", "L", "R", "T", "A", "S", "K", "G" ];
 var menus = [ 'C', 'D', 'E' ];
@@ -547,7 +555,7 @@ This tool should be considered a beta release. Please report bugs and provide fe
 </div>
 <div class="small" id="status"></div>
 <div class="small">
-This version is for FH-2 firmware v1.23 and above.
+This version is for FH-2 firmware v1.24 and above.
 <label for="theme">Theme: </label><select id="theme" onchange="changeTheme()"><option value=0>Light</option><option value=1>Dark</option></select>
 </div>
 <p>
@@ -555,6 +563,9 @@ This version is for FH-2 firmware v1.23 and above.
 <button class="big" accesskey='s' onclick="send()">Send to FH-2</button>
 <label for="midioutput">Send to MIDI output port: </label><select id="midioutput" onchange="changeOutput()" accesskey='o'></select>
 <button onclick="sendMsg()">Send Msg</button>
+<!--
+<button class="big" onclick="saveToFlash()">Save to flash</button>
+-->
 <br>
 <button class="big" accesskey='u' onclick="request()">Upload from FH-2</button>
 <label for="midiinput">Listen on MIDI input port: </label><select id="midiinput" onchange='changeInput()' accesskey='i'></select>
@@ -649,6 +660,7 @@ writeValueSelectTd( 'swing_pos3', 'Swing Position 3' );
 <th>Transpose</th>
 <th colspan=7>Envelopes</th>
 <th>Random</th>
+<th colspan=3>Envelope shapes</th>
 <th colspan=3>Scala</th>
 </tr>
 <tr>
@@ -657,6 +669,7 @@ writeValueSelectTd( 'swing_pos3', 'Swing Position 3' );
 <th></th>
 <th>Attack</th><th>Decay</th><th>Sustain</th><th>Release</th><th>Range</th><th>Depth</th><th>Velocity Depth</th>
 <th></th>
+<th>Attack</th><th>Decay</th><th>Release</th>
 <th>Enable</th><th>.scl</th><th>.kbm</th>
 </tr>
 </thead>
@@ -719,6 +732,29 @@ param_label = "env. velocity depth";
 else if (j == 7)
 {
 param_label = "random depth";
+}
+else
+{
+param_label = "error: unknown parameter";
+}
+
+			writeValueSelectTd( id, param_label );
+		}
+		for ( var j=0; j<mcvMappable3Controls.length; ++j ) {
+			var id = "mcvm3_" + i + "_" + mcvMappable3Controls[j];
+			var param_label;
+
+if (j == 0)
+{
+param_label = "attack shape";
+}
+else if (j == 1)
+{
+param_label = "decay shape";
+}
+else if (j == 2)
+{
+param_label = "release shape";
 }
 else
 {
@@ -1045,12 +1081,34 @@ showHide( "srr_table", false );
 showHide( "seq_table", false );
 </script>
 
+<hr>
+
+<label for="seqBank">Sequencer Bank: </label><select id="seqBank"><option value=0>Live</option>
+<script>
+for ( let i=1; i<=8; i++) {
+	document.write( '<option value=' + i + '>' + i + '</option>' );
+}
+</script>
+</select>
+<button onclick="reqSeqDump()">Request Sequencer Bank dump</button>
+
+<p>
+<label for="drumSeqBank">Drum Sequencer Bank: </label><select id="drumSeqBank"><option value=0>Live</option>
+<script>
+for ( let i=1; i<=8; i++) {
+	document.write( '<option value=' + i + '>' + i + '</option>' );
+}
+</script>
+</select>
+<button onclick="reqDrumSeqDump()">Request Drum Sequencer Bank dump</button>
+
+
 <script>
 function parsePresetDump( data ) {
 	let c = 0;
 	// version
 	let version = ( data[c] ) | ( data[c+1] << 8 ) | ( data[c+2] << 16 ) | ( data[c+3] << 24 )
-	if ( version != 7 )
+	if ( version != 8 )
 	{
 		alert( "This version of the tool does not match the FH-2 firmware." );
 		return;
@@ -1229,6 +1287,13 @@ function parsePresetDump( data ) {
 	document.getElementById( "swing_pos2" ).value = data[c];	c += 1;
 	document.getElementById( "swing_pos3" ).value = data[c];	c += 1;
 	c += 1;
+	// MCV mappable 3
+	for ( i = 0; i < 16; ++i ) {
+		document.getElementById( "mcvm3_" + i + "_AS" ).value = data[c];	c += 1;
+		document.getElementById( "mcvm3_" + i + "_DS" ).value = data[c];	c += 1;
+		document.getElementById( "mcvm3_" + i + "_RS" ).value = data[c];	c += 1;
+		c += 5;
+	}
 
 	// skip to addendum
 	c = 4096;
@@ -1368,6 +1433,13 @@ function send() {
 	let dd = log( "sent sysex (" + arr.length + " bytes)" );
 	dumpSysex( arr, "txSysex", dd+"\n" );
 }
+function saveToFlash() {
+	let output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	let arr = [ 0xF0, 0x00, 0x21, 0x27, 0x2F, 0x19, 0x00, 0xF7 ];
+	output.send( arr );
+	let dd = log( "sent save to flash request to FH-2" );
+	dumpSysex( arr, "txSysex", dd+"\n" );
+}
 function sendMsg() {
 	let str = makeMsgSysEx();
 	let arr = new Uint8Array( str.length );
@@ -1391,6 +1463,22 @@ function reqVersion() {
 	let arr = [ 0xF0, 0x00, 0x21, 0x27, 0x2F, 0x22, 0xF7 ];
 	output.send( arr );
 	let dd = log( "sent version request to FH-2" );
+	dumpSysex( arr, "txSysex", dd+"\n" );
+}
+function reqSeqDump() {
+	let which = document.getElementById( "seqBank" ).value;
+	let output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	let arr = [ 0xF0, 0x00, 0x21, 0x27, 0x2F, 0x14, which, 0xF7 ];
+	output.send( arr );
+	let dd = log( "sent sequence bank dump request to FH-2" );
+	dumpSysex( arr, "txSysex", dd+"\n" );
+}
+function reqDrumSeqDump() {
+	let which = document.getElementById( "drumSeqBank" ).value;
+	let output = midi.outputs.get( document.getElementById( "midioutput" ).value );
+	let arr = [ 0xF0, 0x00, 0x21, 0x27, 0x2F, 0x16, which, 0xF7 ];
+	output.send( arr );
+	let dd = log( "sent drum sequence bank dump request to FH-2" );
 	dumpSysex( arr, "txSysex", dd+"\n" );
 }
 var chosenConfig = []
