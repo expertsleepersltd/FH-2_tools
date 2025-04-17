@@ -778,7 +778,8 @@ function makeSysEx() {
 		var ta = document.getElementById( "cvm_outA_" + i ).checked;
 		var tc = document.getElementById( "cvm_outC_" + i ).checked;
 		var td = document.getElementById( "cvm_outD_" + i ).checked;
-		arr[c+0] = ( td << 4 ) | ( tc << 3 ) | ( ta << 2 ) | ( ti << 1 ) | en;
+		var ts = document.getElementById( "cvm_outS_" + i ).checked;
+		arr[c+0] = ( ts << 5 ) | ( td << 4 ) | ( tc << 3 ) | ( ta << 2 ) | ( ti << 1 ) | en;
 		arr[c+1] = ( document.getElementById( "cvm_type_" + i ).value << 4 ) | ( document.getElementById( "cvm_ch_" + i ).value - 1 );
 		arr[c+2] = document.getElementById( "cvm_cc_" + i ).value;
 		var v = document.getElementById( "cvm_0v_" + i ).value;
@@ -807,6 +808,8 @@ function makeSysEx() {
 			outs |= (1<<2);
 		if ( document.getElementById( "seqn_" + i + "_d" ).checked )
 			outs |= (1<<3);
+		if ( document.getElementById( "seqn_" + i + "_s" ).checked )
+			outs |= (1<<4);
     	arr[c] = outs;														c += 1;
 		arr[c] = document.getElementById( "seqn_" + i + "_clk" ).value;		c += 1;
     	c += 1;
@@ -822,6 +825,8 @@ function makeSysEx() {
 			outs |= (1<<2);
 		if ( document.getElementById( "seqd_" + i + "_d" ).checked )
 			outs |= (1<<3);
+		if ( document.getElementById( "seqd_" + i + "_s" ).checked )
+			outs |= (1<<4);
     	arr[c] = outs;														c += 1;
     	c += 2;
 		for ( let j=0; j<8; ++j ) {
@@ -866,6 +871,8 @@ function makeSysEx() {
 			outs |= (1<<2);
 		if ( document.getElementById( "srr_d_" + i ).checked )
 			outs |= (1<<3);
+		if ( document.getElementById( "srr_s_" + i ).checked )
+			outs |= (1<<4);
     	arr[c] = outs;														c += 1;
 	}
 
@@ -1165,7 +1172,7 @@ At the time of writing this will work only in Google's <a href="http://www.googl
 </div>
 <div class="small" id="status"></div>
 <div class="small">
-This version is for FH-2 firmware v1.24 and above.
+This version is for FH-2 firmware v2.0 and above.
 <label for="theme">Theme: </label><select id="theme" onchange="changeTheme()"><option value=0>Light</option><option value=1>Dark</option></select>
 </div>
 <p>
@@ -2077,13 +2084,13 @@ param_label = "error: unknown parameter";
 
 <table id="srr_table"><caption class="hidden">Shift Register Random</caption>
 <tr>
-<th colspan=19>Shift Register Random</th>
+<th colspan=20>Shift Register Random</th>
 </tr>
-<tr><td></td><th colspan=3>Outputs</th><th class='tc'>Notes input</th><th class='tc' colspan=5>MIDI output</th><th>Clock source</th>
+<tr><td></td><th colspan=3>Outputs</th><th class='tc'>Notes input</th><th class='tc' colspan=6>MIDI output</th><th>Clock source</th>
 <th>Direction</th><th>Length</th><th>Randomness</th><th>Rate</th><th>Attenuator</th><th>Scale</th><th>Key</th>
 <th>Gate Length</th>
 </tr>
-<tr><th></th><th>CV</th><th>Change</th><th>Trigger</th><th>Channel</th><th>Channel</th><th>Internal</th><th>USB C</th><th>USB A</th><th>DIN</th><th>(for rate 0)</th>
+<tr><th></th><th>CV</th><th>Change</th><th>Trigger</th><th>Channel</th><th>Channel</th><th>Internal</th><th>USB C</th><th>USB A</th><th>DIN</th><th>Select</th><th>(for rate 0)</th>
 <td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td>
 <td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td><td class='tc'>Channel/CC</td>
 </tr>
@@ -2118,6 +2125,7 @@ param_label = "error: unknown parameter";
 		document.write( "<td><input type='checkbox' id='srr_c_" + i + "'></td>" );
 		document.write( "<td><input type='checkbox' id='srr_a_" + i + "'></td>" );
 		document.write( "<td><input type='checkbox' id='srr_d_" + i + "'></td>" );
+		document.write( "<td><input type='checkbox' id='srr_s_" + i + "'></td>" );
 
 		id = "srr_clk_" + i;
 		document.write( "<td><label class='hidden' for='" + id + "'>Random " + (i + 1) + " external clock source</label>" );
@@ -2144,10 +2152,10 @@ param_label = "error: unknown parameter";
 
 <table id="seq_table"><caption class="hidden">Sequencers</caption>
 <tr>
-<th colspan=7>Sequencers</th>
+<th colspan=8>Sequencers</th>
 </tr>
-<tr><td></td><th>MIDI channel</th><th>Internal</th><th>USB C</th><th>USB A</th><th>DIN</th><th>Clock source</th><th colspan=8>Notes</th></tr>
-<tr><th>Note sequencers</th><th colspan=5></th><th>(for rate 0)</th></tr>
+<tr><td></td><th>MIDI channel</th><th>Internal</th><th>USB C</th><th>USB A</th><th>DIN</th><th>Select</th><th>Clock source</th><th colspan=8>Notes</th></tr>
+<tr><th>Note sequencers</th><th colspan=6></th><th>(for rate 0)</th></tr>
 <script>
 	for ( let i=0; i<4; ++i ) {
 		let cl = ( i & 1 ) ? "a" : "b";
@@ -2159,6 +2167,7 @@ param_label = "error: unknown parameter";
 		document.write( "<td><input type='checkbox' id='seqn_" + i + "_c'></td>" );
 		document.write( "<td><input type='checkbox' id='seqn_" + i + "_a'></td>" );
 		document.write( "<td><input type='checkbox' id='seqn_" + i + "_d'></td>" );
+		document.write( "<td><input type='checkbox' id='seqn_" + i + "_s'></td>" );
 		let id = "seqn_" + i + "_clk";
 		document.write( "<td><label class='hidden' for='" + id + "'>Sequencer " + (i + 1) + " external clock source</label>" );
 		document.write( "<select id='" + id + "'>" );
@@ -2171,7 +2180,7 @@ param_label = "error: unknown parameter";
 		document.write( "</tr>" );
 	}
 </script>
-<tr><th>Drum sequencers</th><th colspan=6></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+<tr><th>Drum sequencers</th><th colspan=7></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
 <script>
 	for ( let i=0; i<1; ++i ) {
 		let cl = ( i & 1 ) ? "a" : "b";
@@ -2183,6 +2192,7 @@ param_label = "error: unknown parameter";
 		document.write( "<td><input type='checkbox' id='seqd_" + i + "_c'></td>" );
 		document.write( "<td><input type='checkbox' id='seqd_" + i + "_a'></td>" );
 		document.write( "<td><input type='checkbox' id='seqd_" + i + "_d'></td>" );
+		document.write( "<td><input type='checkbox' id='seqd_" + i + "_s'></td>" );
 		document.write( "<td></td>" );
 		for ( let j=0; j<8; ++j ) {
 			let id = "seqd_" + i + "_n_" + j;
@@ -2531,10 +2541,10 @@ param_label = "smoothing";
 </table>
 
 <table id="cvm_table"><caption class='hidden'>CV/MIDI Configurator</caption>
-<tr><th colspan=7>CV/MIDI</th><th colspan=4>Output to</th></tr>
+<tr><th colspan=7>CV/MIDI</th><th colspan=5>Output to</th></tr>
 <tr>
 <th></th><th>Enable</th><th>Type</th><th>Channel</th><th>CC or Note</th><th>0V</th><th>5V</th>
-<th>Internal</th><th>USB A</th><th>USB C</th><th>DIN</th>
+<th>Internal</th><th>USB A</th><th>USB C</th><th>DIN</th><th>Select</th>
 </tr>
 <script>
 	var cvms = [ 'X', 'Y' ];
@@ -2580,6 +2590,11 @@ param_label = "smoothing";
 		var id = "cvm_outD_" + i;
 		document.write( "<td><label class='hidden' for='" + id + "'>Output to DIN (Input " + cvms[i] + ")</label>");
 		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+
+		var id = "cvm_outS_" + i;
+		document.write( "<td><label class='hidden' for='" + id + "'>Output to Select Bus (Input " + cvms[i] + ")</label>");
+		document.write( "<input type='checkbox' id='" + id + "'></td>" );
+
 		document.write( "</tr>" );
 	}
 </script>
@@ -3133,6 +3148,7 @@ function parseConfigDump( data ) {
 		document.getElementById( "cvm_outA_" + i ).checked = ( t & ( 1<<2 ) ) != 0;
 		document.getElementById( "cvm_outC_" + i ).checked = ( t & ( 1<<3 ) ) != 0;
 		document.getElementById( "cvm_outD_" + i ).checked = ( t & ( 1<<4 ) ) != 0;
+		document.getElementById( "cvm_outS_" + i ).checked = ( t & ( 1<<5 ) ) != 0;
 		document.getElementById( "cvm_type_" + i ).value = data[c+1] >> 4;
 		document.getElementById( "cvm_ch_" + i ).value = ( data[c+1] & 0xf ) + 1;
 		document.getElementById( "cvm_cc_" + i ).value = data[c+2];
@@ -3154,6 +3170,7 @@ function parseConfigDump( data ) {
 		document.getElementById( "seqn_" + i + "_c" ).checked = ( outs >> 1 ) & 1;
 		document.getElementById( "seqn_" + i + "_a" ).checked = ( outs >> 2 ) & 1;
 		document.getElementById( "seqn_" + i + "_d" ).checked = ( outs >> 3 ) & 1;
+		document.getElementById( "seqn_" + i + "_s" ).checked = ( outs >> 4 ) & 1;
 		document.getElementById( "seqn_" + i + "_clk" ).value = data[c];	c += 1;
 		c += 1;
 	}
@@ -3164,6 +3181,7 @@ function parseConfigDump( data ) {
 		document.getElementById( "seqd_" + i + "_c" ).checked = ( outs >> 1 ) & 1;
 		document.getElementById( "seqd_" + i + "_a" ).checked = ( outs >> 2 ) & 1;
 		document.getElementById( "seqd_" + i + "_d" ).checked = ( outs >> 3 ) & 1;
+		document.getElementById( "seqd_" + i + "_s" ).checked = ( outs >> 4 ) & 1;
 		c += 2;
 		for ( let j=0; j<8; ++j ) {
 			document.getElementById( "seqd_" + i + "_n_" + j ).value = data[c];	c += 1;
@@ -3193,6 +3211,7 @@ function parseConfigDump( data ) {
 		document.getElementById( "srr_c_" + i ).checked = ( outs >> 1 ) & 1;
 		document.getElementById( "srr_a_" + i ).checked = ( outs >> 2 ) & 1;
 		document.getElementById( "srr_d_" + i ).checked = ( outs >> 3 ) & 1;
+		document.getElementById( "srr_s_" + i ).checked = ( outs >> 4 ) & 1;
 	}
 
 	// skip to addendum
